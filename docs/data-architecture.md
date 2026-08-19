@@ -6,7 +6,7 @@ The site is two static HTML pages sharing one JSON data file. There is no backen
 
 ```
 ┌─────────────────────┐        ┌──────────────────────┐
-│  ai-stack-map.html   │──────▶│     prices.json        │
+│  index.html   │──────▶│     prices.json        │
 │  (fetches at load)   │  GET  │  (static JSON, in repo)│
 └─────────────────────┘        └───────────▲────────────┘
                                             │ overwrites
@@ -17,7 +17,7 @@ The site is two static HTML pages sharing one JSON data file. There is no backen
 └─────────────────────┘
 ```
 
-`ai-stack-bubbles.html` intentionally does **not** read `prices.json`. If price data is wanted there later, mirror the `fetch('./prices.json')` block from `ai-stack-map.html`'s `<script>` tag.
+`ai-stack-bubbles.html` intentionally does **not** read `prices.json`. If price data is wanted there later, mirror the `fetch('./prices.json')` block from `index.html`'s `<script>` tag.
 
 ## `prices.json` schema
 
@@ -40,14 +40,14 @@ The site is two static HTML pages sharing one JSON data file. There is no backen
 
 Rules:
 
-- Only raw prices are stored. `ai-stack-map.html` computes %-from-52W-high, %-from-52W-low, and YTD% client-side — never store a pre-computed percentage in this file.
+- Only raw prices are stored. `index.html` computes %-from-52W-high, %-from-52W-low, and YTD% client-side — never store a pre-computed percentage in this file.
 - `ytdStart` is the close on the year's first trading day, used for the YTD% calculation.
 - `_meta.asOf` reflects the *actual* session date the data came from (per Alpaca's bar timestamps), which may occasionally differ from the requested date — this keeps the page's "Last refreshed" line honest.
 - A ticker with no entry in this file falls back to its default "NA" rendering in the HTML. The JS never blanks out or guesses a value.
 
 ## Company/ticker classification
 
-Every ticker chip on `ai-stack-map.html` falls into exactly one of three states:
+Every ticker chip on `index.html` falls into exactly one of three states:
 
 | State | How it's marked | Behavior |
 |---|---|---|

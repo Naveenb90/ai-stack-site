@@ -38,7 +38,7 @@ GitHub Actions schedule (Fri 21:15 UTC)  ──or──  manual "Run workflow"
         pushed straight to the default branch (main)
                 │
                 ▼
-        ai-stack-map.html  (next page load)
+        index.html  (next page load)
                 │  fetch('./prices.json', {cache: 'no-store'})
                 ▼
         chip DOM updated with price / 52W / YTD, "Last refreshed" set
@@ -68,7 +68,7 @@ All three fetch functions batch tickers in groups of 30 (Alpaca's multi-symbol q
 
 ## Consumption on the page
 
-`ai-stack-map.html` fetches `prices.json` once per page load (`cache: 'no-store'`, so it's never served stale from the browser cache), then computes and renders, per ticker: current price, %-from-52-week-high, %-from-52-week-low, and YTD % — all derived client-side from the raw numbers in the file. `ai-stack-bubbles.html` does not participate in this flow at all (see [data-architecture.md](./data-architecture.md)).
+`index.html` fetches `prices.json` once per page load (`cache: 'no-store'`, so it's never served stale from the browser cache), then computes and renders, per ticker: current price, %-from-52-week-high, %-from-52-week-low, and YTD % — all derived client-side from the raw numbers in the file. `ai-stack-bubbles.html` does not participate in this flow at all (see [data-architecture.md](./data-architecture.md)).
 
 ## Required secrets
 

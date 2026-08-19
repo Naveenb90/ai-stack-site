@@ -5,14 +5,14 @@ This repo holds a reference map of public (and a few private) companies across t
 ## What's here
 
 ```
-ai-stack-map.html                    # Main reference page — list view, 10 layers + Notable Stocks
+index.html                    # Main reference page — list view, 10 layers + Notable Stocks
 ai-stack-bubbles.html                # Companion page — interactive drill-down bubble chart
-prices.json                          # Shared price data, read by ai-stack-map.html at load time
+prices.json                          # Shared price data, read by index.html at load time
 scripts/update_prices.py             # Pulls weekly data from Alpaca, overwrites prices.json
 .github/workflows/update-prices.yml  # Runs update_prices.py every Friday after close
 ```
 
-`ai-stack-bubbles.html` currently does **not** read `prices.json` — it's name/ticker/role only, no price data wired in. If that's wanted later, mirror the fetch logic from `ai-stack-map.html`'s `<script>` block.
+`ai-stack-bubbles.html` currently does **not** read `prices.json` — it's name/ticker/role only, no price data wired in. If that's wanted later, mirror the fetch logic from `index.html`'s `<script>` block.
 
 ## The layer model
 
@@ -32,7 +32,7 @@ Both pages share the same 10-layer structure, ordered upstream → downstream, p
 
 If you add a company, decide which layer it actually belongs to before defaulting to Notable Stocks — that section is for genuine "doesn't fit" cases, not a dumping ground.
 
-**When adding a new layer:** update it in both `ai-stack-map.html` (list) and `ai-stack-bubbles.html` (bubbles) — they're maintained as two independent copies of the same data, not a shared source. There's real drift risk here; see "Known limitations" below.
+**When adding a new layer:** update it in both `index.html` (list) and `ai-stack-bubbles.html` (bubbles) — they're maintained as two independent copies of the same data, not a shared source. There's real drift risk here; see "Known limitations" below.
 
 ## Data model: `prices.json`
 
@@ -55,7 +55,7 @@ If you add a company, decide which layer it actually belongs to before defaultin
 
 - Only **US-listed tickers** appear here. Alpaca (the data source) doesn't cover foreign exchanges.
 - `ytdStart` is the close on the year's first trading day — used to compute YTD % client-side.
-- The page computes everything else itself: % from 52-week high, % from 52-week low, and YTD %. `prices.json` never stores pre-computed percentages — only raw prices. If you want to add a new derived metric, do the math in `ai-stack-map.html`'s populate script, not in the Python script.
+- The page computes everything else itself: % from 52-week high, % from 52-week low, and YTD %. `prices.json` never stores pre-computed percentages — only raw prices. If you want to add a new derived metric, do the math in `index.html`'s populate script, not in the Python script.
 - A ticker with **no entry** in this file renders as its default fallback in the HTML (see below) — the JS never blanks out or guesses.
 
 ## NA vs. pending — this distinction matters
@@ -78,13 +78,13 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 ## Adding a ticker to the weekly pull
 
 1. Add it to the `TICKERS` list in `scripts/update_prices.py` (US-listed only).
-2. In `ai-stack-map.html`, make sure its chip has `data-ticker="SYMBOL"` and no `data-market` attribute.
+2. In `index.html`, make sure its chip has `data-ticker="SYMBOL"` and no `data-market` attribute.
 3. It'll populate automatically on the next scheduled or manual run — no other code changes needed.
 
 ## Known limitations / things not to "fix" without thinking first
 
 - **No live prices.** Everything is a weekly snapshot. Don't add real-time polling without discussing rate limits and whether it's actually wanted — this was an explicit design choice (see conversation history / commit messages), not an oversight.
-- **Two HTML files, no shared data source.** Layer/company data is duplicated between `ai-stack-map.html` and `ai-stack-bubbles.html`. If you're changing the roster of companies, update both or note that you didn't.
+- **Two HTML files, no shared data source.** Layer/company data is duplicated between `index.html` and `ai-stack-bubbles.html`. If you're changing the roster of companies, update both or note that you didn't.
 - **Manual, human-verified seed data.** The current values in `prices.json` were originally researched and entered by hand before the Alpaca pipeline existed. Once the Action has run at least once successfully, treat the file as machine-owned — don't hand-edit it and expect it to survive the next run.
 - **Currency:** everything is USD except Neo Performance Materials (NEO), which is CAD and TSX-listed — it's in the permanent-NA bucket precisely because of this, not a bug.
 - **This is a reference/illustrative tool, not investment advice.** Keep that framing in any copy changes — it's stated explicitly in the page footer and should stay there.

@@ -8,7 +8,7 @@ This repo is already initialized locally with one commit on `main`. These are th
 
 ```bash
 cd ai-stack-site
-git remote add origin https://github.com/<your-username>/<your-repo>.git
+git remote add origin https://github.com/Naveenb90/ai-stack-site.git
 git push -u origin main
 ```
 
