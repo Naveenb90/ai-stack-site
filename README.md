@@ -9,6 +9,10 @@ A reference map of public (and a few private) companies across the AI supply cha
 - `prices.json` — shared price data, machine-owned once the Action has run.
 - `scripts/update_prices.py` — pulls weekly data from Alpaca and rewrites `prices.json`.
 - `.github/workflows/update-prices.yml` — runs the script every Friday ~21:15 UTC (after US market close), and can be triggered manually from the Actions tab.
+- `docs/` — deeper reference docs:
+  - [`docs/data-flow.md`](docs/data-flow.md) — step-by-step trace of the weekly Alpaca → `prices.json` → page pipeline
+  - [`docs/data-architecture.md`](docs/data-architecture.md) — `prices.json` schema, ticker classification, the 10-layer model, known limitations
+  - [`docs/git-commands.md`](docs/git-commands.md) — git reference for pushing this repo and working with it day-to-day
 
 ## Publishing
 
