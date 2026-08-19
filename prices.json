@@ -1,0 +1,91 @@
+{
+  "_meta": {
+    "asOf": "2026-08-14",
+    "source": "seed data, verified manually \u2014 replaced weekly by scripts/update_prices.py",
+    "note": "US market only. Foreign-listed tickers (TSX, KRX, TSE) and private companies are intentionally excluded \u2014 the page shows them as NA."
+  },
+  "MP": {
+    "price": 58.74,
+    "low52": 37.81,
+    "high52": 100.25,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "USAR": {
+    "price": 20.0,
+    "low52": 11.45,
+    "high52": 43.98,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "AVGO": {
+    "price": 392.43,
+    "low52": 281.87,
+    "high52": 495.0,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "NVDA": {
+    "price": 225.55,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "TSM": {
+    "price": 431.44,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "ASML": {
+    "price": 1880.0,
+    "low52": 683.48,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "MU": {
+    "price": 1017.37,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "INTC": {
+    "price": 103.58,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "QCOM": {
+    "price": 162.26,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "ARM": {
+    "price": 273.68,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "MRVL": {
+    "price": 235.68,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  },
+  "CRDO": {
+    "price": 281.93,
+    "low52": null,
+    "high52": null,
+    "ytdStart": null,
+    "currency": "USD"
+  }
+}

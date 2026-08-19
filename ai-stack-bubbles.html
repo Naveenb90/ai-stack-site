@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>The AI Stack — Bubble Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+  :root{
+    --ink:#0D1219;
+    --panel:#131B26;
+    --panel-line:#232E3D;
+    --bone:#EDEAE1;
+    --muted:#8B94A3;
+    --brass:#C9A05C;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    height:100%;
+    overflow:hidden;
+    overscroll-behavior:none;
+  }
+  header{
+    padding:16px 18px 6px;
+    text-align:center;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:var(--brass);
+    margin-bottom:4px;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:700;
+    font-size:22px;
+    letter-spacing:-.01em;
+  }
+  h1 em{ font-style:italic; font-weight:400; color:var(--brass); }
+
+  #topbar{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:10px 18px 6px;
+    min-height:38px;
+  }
+  #backBtn{
+    display:none;
+    align-items:center;
+    gap:6px;
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    color:var(--bone);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    padding:7px 14px 7px 10px;
+    border-radius:20px;
+    cursor:pointer;
+  }
+  #backBtn.show{ display:inline-flex; }
+  #backBtn:active{ transform:scale(.97); }
+  #layerLabel{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-size:16px;
+    display:none;
+    align-items:center;
+    gap:8px;
+  }
+  #layerLabel.show{ display:flex; }
+  #layerLabel .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+
+  #stage{
+    position:relative;
+    width:100%;
+    height:calc(100% - 118px);
+    touch-action:manipulation;
+  }
+  svg{
+    display:block;
+    width:100%;
+    height:100%;
+  }
+  .bubble{ cursor:pointer; }
+  .node-label{
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:600;
+    pointer-events:none;
+    text-anchor:middle;
+    fill:var(--ink);
+  }
+  .node-sub{
+    font-family:'IBM Plex Mono', monospace;
+    pointer-events:none;
+    text-anchor:middle;
+    fill:var(--ink);
+    opacity:.6;
+  }
+  .node-count{
+    font-family:'IBM Plex Mono', monospace;
+    pointer-events:none;
+    text-anchor:middle;
+    fill:var(--ink);
+    opacity:.55;
+  }
+
+  .hint{
+    position:absolute;
+    bottom:10px; left:0; right:0;
+    text-align:center;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted);
+    pointer-events:none;
+    letter-spacing:.02em;
+  }
+
+  #panel{
+    position:fixed;
+    left:0; right:0; bottom:0;
+    background:var(--panel);
+    border-top:1px solid var(--panel-line);
+    border-radius:16px 16px 0 0;
+    padding:18px 22px 26px;
+    transform:translateY(110%);
+    transition:transform .28s cubic-bezier(.2,.8,.2,1);
+    z-index:60;
+    box-shadow:0 -12px 40px rgba(0,0,0,.5);
+  }
+  #panel.open{ transform:translateY(0); }
+  #panel .row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+  }
+  #panel .dot{
+    width:10px; height:10px;
+    border-radius:50%;
+    display:inline-block;
+    margin-right:8px;
+    flex-shrink:0;
+  }
+  #panel .name{
+    font-family:'Fraunces', serif;
+    font-size:20px;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+  }
+  #panel .ticker{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px;
+    color:var(--brass);
+    white-space:nowrap;
+    padding-top:2px;
+  }
+  #panel .role{
+    margin-top:8px;
+    font-size:13.5px;
+    color:var(--muted);
+    line-height:1.5;
+    padding-left:18px;
+  }
+  #panel .layer-tag{
+    margin-top:10px;
+    padding-left:18px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10.5px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  #panel .close{
+    position:absolute;
+    top:14px; right:16px;
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-size:20px;
+    cursor:pointer;
+    line-height:1;
+    padding:4px;
+  }
+
+  #scrim{
+    position:fixed; inset:0;
+    background:rgba(0,0,0,.35);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease;
+    z-index:55;
+  }
+  #scrim.open{ opacity:1; pointer-events:auto; }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="eyebrow">AI Stack · Bubble Map</div>
+    <h1>Tap to <em>drill down</em></h1>
+  </header>
+
+  <div id="topbar">
+    <button id="backBtn">← <span>All layers</span></button>
+    <div id="layerLabel"><span class="dot" id="layerDot"></span><span id="layerName"></span></div>
+  </div>
+
+  <div id="stage">
+    <svg id="chart"></svg>
+    <div class="hint" id="hint">Tap a layer to open it</div>
+  </div>
+
+  <div id="scrim"></div>
+  <div id="panel">
+    <button class="close" id="panelClose">×</button>
+    <div class="row">
+      <div class="name"><span class="dot" id="panelDot"></span><span id="panelName"></span></div>
+      <div class="ticker" id="panelTicker"></div>
+    </div>
+    <div class="role" id="panelRole"></div>
+    <div class="layer-tag" id="panelLayer"></div>
+  </div>
+
+<script>
+/* ---------------- Data ---------------- */
+const LAYERS = [
+  { name:"Design Software", color:"#6FAF9E", companies:[
+    {name:"Cadence", ticker:"CDNS", role:"EDA, AI-driven chip design"},
+    {name:"Synopsys", ticker:"SNPS", role:"EDA, silicon IP"},
+  ]},
+  { name:"Foundry & Equipment", color:"#6B8CAE", companies:[
+    {name:"TSMC", ticker:"TSM", role:"Contract chip manufacturing"},
+    {name:"ASML", ticker:"ASML", role:"EUV lithography monopoly"},
+    {name:"Applied Materials", ticker:"AMAT", role:"Wafer fab equipment"},
+    {name:"Lam Research", ticker:"LRCX", role:"Etch & deposition"},
+    {name:"KLA Corp", ticker:"KLAC", role:"Process control & inspection"},
+  ]},
+  { name:"Silicon", color:"#C9A05C", companies:[
+    {name:"Nvidia", ticker:"NVDA", role:"AI accelerator leader"},
+    {name:"Broadcom", ticker:"AVGO", role:"Custom AI silicon (ASICs)"},
+    {name:"AMD", ticker:"AMD", role:"GPU & CPU challenger"},
+    {name:"Intel", ticker:"INTC", role:"CPU incumbent, foundry bet"},
+    {name:"Qualcomm", ticker:"QCOM", role:"Edge & mobile AI chips"},
+    {name:"Arm Holdings", ticker:"ARM", role:"CPU architecture licensor"},
+    {name:"Cerebras", ticker:"CBRS", role:"Wafer-scale AI inference chips"},
+  ]},
+  { name:"Networking & Optics", color:"#8C7FD1", companies:[
+    {name:"Lumentum", ticker:"LITE", role:"Photonic integrated circuits"},
+    {name:"Coherent", ticker:"COHR", role:"Photonics for AI data centers"},
+    {name:"Applied Optoelectronics", ticker:"AAOI", role:"Optical transceivers"},
+    {name:"Viavi Solutions", ticker:"VIAV", role:"Network testing & assurance"},
+    {name:"Marvell", ticker:"MRVL", role:"Custom silicon for data infra"},
+    {name:"Credo", ticker:"CRDO", role:"High-speed connectivity for AI"},
+    {name:"Astera Labs", ticker:"ALAB", role:"Connectivity for AI clusters"},
+    {name:"Arista Networks", ticker:"ANET", role:"Cloud networking switches"},
+    {name:"Cisco", ticker:"CSCO", role:"Enterprise networking incumbent"},
+    {name:"Ciena", ticker:"CIEN", role:"Optical networking systems"},
+    {name:"Amphenol", ticker:"APH", role:"High-speed interconnects"},
+    {name:"Semtech", ticker:"SMTC", role:"Optical modules & signal ICs"},
+  ]},
+  { name:"Memory", color:"#7FA88E", companies:[
+    {name:"Micron", ticker:"MU", role:"US DRAM & HBM"},
+    {name:"Samsung", ticker:"005930.KS", role:"DRAM & HBM, largest scale"},
+    {name:"SK Hynix", ticker:"000660.KS", role:"HBM share leader"},
+    {name:"SanDisk", ticker:"SNDK", role:"NAND flash & storage"},
+    {name:"Western Digital", ticker:"WDC", role:"Storage & NAND"},
+    {name:"Kioxia", ticker:"285A.T", role:"NAND, Toshiba spinoff"},
+    {name:"Seagate", ticker:"STX", role:"Hard drives & storage"},
+    {name:"Pure Storage", ticker:"PSTG", role:"Flash storage for AI data"},
+  ]},
+  { name:"Models & Software", color:"#B98BC9", companies:[
+    {name:"Microsoft", ticker:"MSFT", role:"Azure AI, OpenAI partner"},
+    {name:"Alphabet", ticker:"GOOGL", role:"Gemini, TPUs, DeepMind"},
+    {name:"Meta", ticker:"META", role:"Llama, largest AI capex"},
+    {name:"Palantir", ticker:"PLTR", role:"Enterprise AI deployment"},
+    {name:"Anthropic", ticker:"Private", role:"Claude, safety-focused frontier lab"},
+    {name:"OpenAI", ticker:"Private", role:"ChatGPT, GPT model family"},
+    {name:"xAI", ticker:"Private", role:"Grok model family"},
+    {name:"Mistral AI", ticker:"Private", role:"Open-weight European frontier lab"},
+    {name:"Perplexity", ticker:"Private", role:"AI-powered answer engine"},
+  ]},
+  { name:"Cloud Infrastructure", color:"#5EA8C7", companies:[
+    {name:"Amazon (AWS)", ticker:"AMZN", role:"Largest cloud provider"},
+    {name:"Oracle", ticker:"ORCL", role:"OCI, aggressive AI capex"},
+    {name:"CoreWeave", ticker:"CRWV", role:"Pure-play GPU cloud"},
+    {name:"Nebius", ticker:"NBIS", role:"Ex-Yandex AI cloud"},
+    {name:"Applied Digital", ticker:"APLD", role:"AI data center leasing"},
+    {name:"IREN", ticker:"IREN", role:"Ex-crypto miner, now AI compute"},
+    {name:"TeraWulf", ticker:"WULF", role:"Ex-crypto miner, now AI compute"},
+    {name:"Cipher Mining", ticker:"CIFR", role:"Ex-crypto miner, now AI compute"},
+    {name:"Hut 8", ticker:"HUT", role:"Ex-crypto miner, now AI compute"},
+    {name:"Galaxy Digital", ticker:"GLXY", role:"Digital assets pivoting to AI infra"},
+    {name:"Equinix", ticker:"EQIX", role:"Data center colocation REIT"},
+    {name:"Digital Realty", ticker:"DLR", role:"Data center colocation REIT"},
+  ]},
+  { name:"Security", color:"#B85C6B", companies:[
+    {name:"CrowdStrike", ticker:"CRWD", role:"Endpoint & AI-driven threat detection"},
+    {name:"Palo Alto Networks", ticker:"PANW", role:"Network & cloud security platform"},
+    {name:"Cloudflare", ticker:"NET", role:"Network layer AI agents run through"},
+    {name:"Zscaler", ticker:"ZS", role:"Zero-trust cloud security"},
+    {name:"Fortinet", ticker:"FTNT", role:"Network security, organic cloud growth"},
+    {name:"Datadog", ticker:"DDOG", role:"Cloud monitoring & observability"},
+  ]},
+  { name:"Power & Cooling", color:"#C0654F", companies:[
+    {name:"Vertiv", ticker:"VRT", role:"Data center power & liquid cooling"},
+    {name:"Eaton", ticker:"ETN", role:"Grid-to-chip power, record backlog"},
+    {name:"GE Vernova", ticker:"GEV", role:"Turbines & grid electrification"},
+    {name:"Constellation Energy", ticker:"CEG", role:"Largest US nuclear fleet"},
+    {name:"Vistra", ticker:"VST", role:"Independent power, AWS/Meta PPAs"},
+    {name:"Quanta Services", ticker:"PWR", role:"Grid construction, record backlog"},
+    {name:"nVent Electric", ticker:"NVT", role:"Liquid cooling distribution"},
+    {name:"NextEra Energy", ticker:"NEE", role:"Largest US renewable power producer"},
+    {name:"Talen Energy", ticker:"TLN", role:"Nuclear power, direct hyperscaler PPAs"},
+    {name:"Oklo", ticker:"OKLO", role:"Small modular reactor developer"},
+    {name:"Bloom Energy", ticker:"BE", role:"On-site fuel cell power"},
+  ]},
+  { name:"Consumer & Devices", color:"#C08552", companies:[
+    {name:"Apple", ticker:"AAPL", role:"iPhone, Mac, on-device AI"},
+    {name:"Dell Technologies", ticker:"DELL", role:"AI PCs & servers"},
+    {name:"HP Inc.", ticker:"HPQ", role:"Consumer PCs"},
+    {name:"Samsung Electronics", ticker:"005930.KS", role:"Phones + own memory"},
+  ]},
+  { name:"Notable Stocks", color:"#9C8F73", companies:[
+    {name:"Adobe", ticker:"ADBE", role:"AI-powered creative software"},
+    {name:"Salesforce", ticker:"CRM", role:"Agentforce, AI-driven CRM"},
+    {name:"SAP", ticker:"SAP", role:"Enterprise resource planning + AI"},
+    {name:"IBM", ticker:"IBM", role:"watsonx, hybrid cloud & AI consulting"},
+    {name:"Celestica", ticker:"CLS", role:"Contract manufacturer, AI servers"},
+    {name:"Flex", ticker:"FLEX", role:"Contract manufacturer, data center gear"},
+    {name:"Fabrinet", ticker:"FN", role:"Contract manufacturer, optical parts"},
+    {name:"Sanmina", ticker:"SANM", role:"Contract manufacturer, electronics"},
+    {name:"American Water", ticker:"AWK", role:"Water utility, data center cooling supply"},
+    {name:"Essential Utilities", ticker:"WTRG", role:"Water & wastewater utility"},
+    {name:"Badger Meter", ticker:"BMI", role:"Smart water measurement"},
+    {name:"Centrus Energy", ticker:"LEU", role:"Uranium enrichment for nuclear power"},
+  ]},
+];
+
+/* ---------------- Setup ---------------- */
+const stage = document.getElementById('stage');
+const svg = d3.select("#chart");
+const W = stage.clientWidth, H = stage.clientHeight;
+const DIAM = Math.min(W, H) - 10;
+svg.attr("viewBox", `${-W/2} ${-H/2} ${W} ${H}`);
+const g = svg.append("g");
+
+let mode = "overview"; // "overview" | "layer"
+
+function packItems(items, diam){
+  const root = d3.pack()
+    .size([diam, diam])
+    .padding(items.length > 20 ? 6 : 12)
+    (d3.hierarchy({children: items}).sum(d => d.value));
+  return root.children.map(c => ({ x: c.x - diam/2, y: c.y - diam/2, r: c.r, data: c.data }));
+}
+
+function fitText(str, r, div){
+  const maxChars = Math.max(3, Math.floor(r / (div || 4.4)));
+  if (str.length <= maxChars) return str;
+  return str.slice(0, maxChars - 1) + "…";
+}
+
+/* ---------------- Overview render ---------------- */
+function renderOverview(fromLayer){
+  mode = "overview";
+  document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('layerLabel').classList.remove('show');
+  document.getElementById('hint').textContent = "Tap a layer to open it";
+
+  const items = LAYERS.map((l, i) => ({
+    value: l.companies.length,
+    name: l.name, color: l.color, idx: i, count: l.companies.length
+  }));
+  const packed = packItems(items, DIAM);
+
+  const startScale = fromLayer !== undefined;
+
+  const sel = g.selectAll(".bubble").data(packed, d => "layer-" + d.data.idx);
+
+  sel.exit()
+    .transition().duration(320)
+      .attr("transform", d => `translate(${d.x},${d.y}) scale(0)`)
+      .style("opacity", 0)
+      .remove();
+
+  const enter = sel.enter().append("g")
+    .attr("class", "bubble")
+    .attr("transform", d => `translate(${d.x},${d.y}) scale(${startScale ? 0 : 1})`)
+    .style("opacity", startScale ? 0 : 1)
+    .on("click", (event, d) => { event.stopPropagation(); drillInto(d.data.idx, d); });
+
+  enter.append("circle")
+    .attr("r", d => d.r)
+    .attr("fill", d => d.data.color)
+    .attr("fill-opacity", 0.82)
+    .attr("stroke", d => d.data.color)
+    .attr("stroke-width", 1.5);
+
+  enter.append("text")
+    .attr("class", "node-label")
+    .attr("dy", "-0.15em")
+    .style("font-size", d => Math.min(15, Math.max(9, d.r / 3.6)) + "px")
+    .text(d => fitText(d.data.name, d.r, 4.2));
+
+  enter.append("text")
+    .attr("class", "node-count")
+    .attr("dy", "1.3em")
+    .style("font-size", d => Math.min(10.5, Math.max(7.5, d.r / 6)) + "px")
+    .text(d => d.data.count + (d.data.count === 1 ? " company" : " companies"));
+
+  const merged = enter.merge(sel);
+  merged.transition().duration(420).ease(d3.easeCubicOut)
+    .attr("transform", d => `translate(${d.x},${d.y}) scale(1)`)
+    .style("opacity", 1);
+}
+
+/* ---------------- Layer (drilled-in) render ---------------- */
+function renderLayer(idx, originNode){
+  mode = "layer";
+  const layer = LAYERS[idx];
+
+  const backBtn = document.getElementById('backBtn');
+  backBtn.classList.add('show');
+  const layerLabel = document.getElementById('layerLabel');
+  layerLabel.classList.add('show');
+  document.getElementById('layerName').textContent = layer.name;
+  document.getElementById('layerDot').style.background = layer.color;
+  document.getElementById('hint').textContent = "Tap a company for details";
+
+  const items = layer.companies.map(c => ({
+    value: 1, name: c.name, ticker: c.ticker, role: c.role, color: layer.color, layer: layer.name
+  }));
+  const packed = packItems(items, DIAM);
+
+  const sel = g.selectAll(".bubble").data(packed, d => "co-" + d.data.name);
+
+  sel.exit().remove();
+
+  const enter = sel.enter().append("g")
+    .attr("class", "bubble")
+    .attr("transform", originNode ? `translate(${originNode.x},${originNode.y}) scale(0)` : d => `translate(${d.x},${d.y}) scale(0)`)
+    .style("opacity", 0)
+    .on("click", (event, d) => { event.stopPropagation(); openPanel(d.data); });
+
+  enter.append("circle")
+    .attr("r", d => d.r)
+    .attr("fill", d => d.data.color)
+    .attr("fill-opacity", 0.88)
+    .attr("stroke", "rgba(13,18,25,.4)")
+    .attr("stroke-width", 1);
+
+  enter.append("text")
+    .attr("class", "node-label")
+    .attr("dy", "-0.1em")
+    .style("font-size", d => Math.min(13, Math.max(8, d.r / 3.4)) + "px")
+    .text(d => fitText(d.data.name, d.r, 4.4));
+
+  enter.append("text")
+    .attr("class", "node-sub")
+    .attr("dy", "1.35em")
+    .style("font-size", "8.5px")
+    .text(d => d.r > 22 ? d.data.ticker : "");
+
+  enter.transition().duration(420).delay((d,i) => i * 12).ease(d3.easeCubicOut)
+    .attr("transform", d => `translate(${d.x},${d.y}) scale(1)`)
+    .style("opacity", 1);
+}
+
+function drillInto(idx, originNode){
+  renderLayer(idx, originNode);
+}
+
+document.getElementById('backBtn').onclick = () => renderOverview(true);
+svg.on("click", () => { if (mode === "layer") renderOverview(true); });
+
+renderOverview();
+
+/* ---------------- Info panel ---------------- */
+const panel = document.getElementById('panel');
+const scrim = document.getElementById('scrim');
+function openPanel(d){
+  document.getElementById('panelName').textContent = d.name;
+  document.getElementById('panelTicker').textContent = d.ticker;
+  document.getElementById('panelRole').textContent = d.role;
+  document.getElementById('panelLayer').textContent = "Layer: " + d.layer;
+  document.getElementById('panelDot').style.background = d.color;
+  panel.classList.add('open');
+  scrim.classList.add('open');
+}
+function closePanel(){
+  panel.classList.remove('open');
+  scrim.classList.remove('open');
+}
+document.getElementById('panelClose').onclick = closePanel;
+scrim.onclick = closePanel;
+
+window.addEventListener('resize', () => { location.reload(); });
+</script>
+
+</body>
+</html>

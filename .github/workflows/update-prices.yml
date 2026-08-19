@@ -1,0 +1,40 @@
+name: Update stock prices (weekly)
+
+on:
+  schedule:
+    # 21:15 UTC on Fridays = ~4:15pm ET, shortly after Friday's US market close.
+    # Adjust for daylight saving if you care about exact timing.
+    - cron: '15 21 * * 5'
+  # Manual runs (Actions tab -> Run workflow) are safe any day/time — the
+  # script always resolves to the last *completed* US market close itself,
+  # so a Tuesday-afternoon manual trigger still pulls Monday's close, not a
+  # partial in-progress session.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch prices from Alpaca
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+        run: python scripts/update_prices.py
+
+      - name: Commit updated prices.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Weekly price update (Friday close)'
+          file_pattern: prices.json

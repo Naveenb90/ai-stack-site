@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The AI Stack — Market Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#0D1219;
+    --panel:#131B26;
+    --panel-line:#232E3D;
+    --bone:#EDEAE1;
+    --muted:#8B94A3;
+    --brass:#C9A05C;
+    --l0:#6FAF9E;
+    --l1:#6B8CAE;
+    --l2:#C9A05C;
+    --l3:#8C7FD1;
+    --l4:#7FA88E;
+    --l5:#B98BC9;
+    --l6:#5EA8C7;
+    --l7:#B85C6B;
+    --l8:#C0654F;
+    --l9:#C08552;
+    --ln:#9C8F73;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--ink);
+    color:var(--bone);
+    font-family:'IBM Plex Sans', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+  }
+  ::selection{background:var(--brass); color:var(--ink);}
+
+  .ticker-wrap{
+    background:#0A0E13;
+    border-bottom:1px solid var(--panel-line);
+    overflow:hidden;
+    white-space:nowrap;
+    padding:9px 0;
+    position:sticky; top:0; z-index:50;
+  }
+  .ticker{
+    display:inline-block;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    letter-spacing:.02em;
+    color:var(--muted);
+    animation:scroll 65s linear infinite;
+  }
+  .ticker span{ margin-right:22px; }
+  .ticker b{ color:var(--brass); font-weight:600; }
+  @keyframes scroll{
+    0%{ transform:translateX(0); }
+    100%{ transform:translateX(-50%); }
+  }
+
+  header.hero{
+    padding:48px 22px 28px;
+    max-width:760px;
+    margin:0 auto;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:.16em;
+    text-transform:uppercase;
+    color:var(--brass);
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:16px;
+  }
+  .eyebrow::before{
+    content:"";
+    width:6px; height:6px;
+    background:var(--brass);
+    border-radius:50%;
+    display:inline-block;
+  }
+  h1{
+    font-family:'Fraunces', serif;
+    font-weight:600;
+    font-optical-sizing:auto;
+    font-size:clamp(34px, 8vw, 52px);
+    line-height:1.04;
+    letter-spacing:-.01em;
+  }
+  h1 em{
+    font-style:italic;
+    font-weight:400;
+    color:var(--brass);
+  }
+  .sub{
+    margin-top:16px;
+    font-size:15px;
+    line-height:1.6;
+    color:var(--muted);
+    max-width:56ch;
+  }
+  .flow{
+    margin-top:22px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+  }
+  .flow .line{
+    flex:1;
+    height:1px;
+    background:linear-gradient(90deg, var(--panel-line), var(--brass), var(--panel-line));
+  }
+  .last-refresh{
+    margin-top:14px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .last-refresh::before{
+    content:"";
+    width:6px; height:6px;
+    border-radius:50%;
+    background:var(--muted);
+    display:inline-block;
+  }
+  .last-refresh.live::before{ background:var(--up); }
+
+  .railnav{
+    position:fixed;
+    right:18px; top:50%;
+    transform:translateY(-50%);
+    display:flex; flex-direction:column; gap:9px;
+    z-index:40;
+  }
+  .railnav a{
+    width:8px; height:8px;
+    border-radius:50%;
+    background:var(--panel-line);
+    display:block;
+    transition:transform .2s ease, background .2s ease;
+    position:relative;
+  }
+  .railnav a:hover, .railnav a.active{ transform:scale(1.4); }
+  .railnav a::after{
+    content:attr(data-label);
+    position:absolute;
+    right:16px; top:50%; transform:translateY(-50%);
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9.5px;
+    color:var(--muted);
+    white-space:nowrap;
+    opacity:0;
+    transition:opacity .15s ease;
+    pointer-events:none;
+  }
+  .railnav a:hover::after{ opacity:1; }
+  @media (max-width:960px){ .railnav{ display:none; } }
+
+  main{
+    max-width:760px;
+    margin:0 auto;
+    padding:8px 22px 40px;
+  }
+  .layer{
+    border-top:1px solid var(--panel-line);
+    padding:34px 0;
+    scroll-margin-top:70px;
+  }
+  .layer:last-child{ border-bottom:1px solid var(--panel-line); }
+
+  .layer-head{
+    display:flex;
+    gap:16px;
+    align-items:baseline;
+    margin-bottom:14px;
+  }
+  .numeral{
+    font-family:'Fraunces', serif;
+    font-size:15px;
+    font-weight:500;
+    color:var(--rail);
+    letter-spacing:.04em;
+    padding-top:2px;
+    min-width:26px;
+  }
+  .layer-title{
+    font-family:'Fraunces', serif;
+    font-size:24px;
+    font-weight:600;
+  }
+  .layer-tag{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    color:var(--rail);
+    background:color-mix(in srgb, var(--rail) 14%, transparent);
+    border:1px solid var(--rail);
+    padding:2px 7px;
+    border-radius:20px;
+    margin-left:auto;
+    white-space:nowrap;
+  }
+  .layer-desc{
+    color:var(--muted);
+    font-size:13.5px;
+    line-height:1.55;
+    margin:6px 0 20px 42px;
+    max-width:58ch;
+  }
+
+  .rail{
+    border-left:2px solid var(--rail);
+    padding-left:20px;
+    margin-left:9px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2, 1fr);
+    gap:8px;
+  }
+  @media (max-width:520px){ .grid{ grid-template-columns:1fr; } }
+
+  .chip{
+    background:var(--panel);
+    border:1px solid var(--panel-line);
+    border-radius:8px;
+    padding:12px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:10px;
+    transition:border-color .15s ease, transform .15s ease, background .15s ease;
+  }
+  .chip:hover{
+    border-color:var(--rail);
+    background:#161F2B;
+    transform:translateX(2px);
+  }
+  .chip .name{
+    font-size:13.5px;
+    font-weight:500;
+  }
+  .chip .role{
+    font-size:11px;
+    color:var(--muted);
+    display:block;
+    margin-top:2px;
+    font-weight:400;
+  }
+  .chip .ticker-sym{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--rail);
+    white-space:nowrap;
+    flex-shrink:0;
+  }
+  .chip .right{
+    text-align:right;
+    flex-shrink:0;
+  }
+  .chip .now{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--bone);
+    white-space:nowrap;
+    margin-top:2px;
+  }
+  .chip .now.na{
+    color:var(--muted);
+    font-weight:400;
+    font-style:italic;
+  }
+  .chip .metrics{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9.5px;
+    color:var(--muted);
+    white-space:nowrap;
+    margin-top:2px;
+    display:block;
+  }
+  .chip .metrics .m{ margin-left:6px; }
+  .chip .metrics .m:first-child{ margin-left:0; }
+  .chip .metrics .up{ color:var(--up); }
+  .chip .metrics .down{ color:var(--down); }
+  .chip .right[data-tooltip]:not([data-tooltip=""]){
+    cursor:help;
+    border-bottom:1px dotted transparent;
+  }
+
+  #l0{ --rail:var(--l0); }
+  #l1{ --rail:var(--l1); }
+  #l2{ --rail:var(--l2); }
+  #l3{ --rail:var(--l3); }
+  #l4{ --rail:var(--l4); }
+  #l5{ --rail:var(--l5); }
+  #l6{ --rail:var(--l6); }
+  #l7{ --rail:var(--l7); }
+  #l8{ --rail:var(--l8); }
+  #l9{ --rail:var(--l9); }
+  #ln{ --rail:var(--ln); }
+
+  footer{
+    max-width:760px;
+    margin:0 auto;
+    padding:26px 22px 60px;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    line-height:1.7;
+    border-top:1px dashed var(--panel-line);
+  }
+  footer strong{ color:var(--bone); }
+
+  @media (prefers-reduced-motion: reduce){
+    .ticker{ animation:none; }
+    html{ scroll-behavior:auto; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="ticker-wrap">
+    <div class="ticker" id="ticker"></div>
+  </div>
+
+  <nav class="railnav" id="railnav">
+    <a href="#l0" data-label="Design Software"></a>
+    <a href="#l1" data-label="Foundry & Equipment"></a>
+    <a href="#l2" data-label="Silicon"></a>
+    <a href="#l3" data-label="Networking & Optics"></a>
+    <a href="#l4" data-label="Memory"></a>
+    <a href="#l5" data-label="Models & Software"></a>
+    <a href="#l6" data-label="Cloud Infrastructure"></a>
+    <a href="#l7" data-label="Security"></a>
+    <a href="#l8" data-label="Power & Cooling"></a>
+    <a href="#l9" data-label="Consumer & Devices"></a>
+    <a href="#ln" data-label="Notable Stocks"></a>
+  </nav>
+
+  <header class="hero">
+    <div class="eyebrow">Market Map · Reference</div>
+    <h1>The AI <em>Stack</em></h1>
+    <p class="sub">Ten layers of the AI economy, ordered upstream to downstream, plus a catch-all for names that matter but don't cleanly fit one layer. A field guide to who does what — no prices, just the map.</p>
+    <div id="lastRefresh" class="last-refresh">Last refreshed: —</div>
+    <div class="flow">
+      <span>Upstream</span>
+      <span class="line"></span>
+      <span>Downstream</span>
+    </div>
+  </header>
+
+  <main>
+
+    <section class="layer" id="l0">
+      <div class="layer-head">
+        <span class="numeral">I</span>
+        <span class="layer-title">Design Software</span>
+        <span class="layer-tag">EDA</span>
+      </div>
+      <p class="layer-desc">Before a wafer is ever cut, a chip is designed in software. These two firms hold a near-duopoly on the electronic design automation tools every chipmaker relies on.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="CDNS"><div><span class="name">Cadence</span><span class="role">EDA, AI-driven chip design</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CDNS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="SNPS"><div><span class="name">Synopsys</span><span class="role">EDA, silicon IP</span></div><div class="right" data-tooltip=""><span class="ticker-sym">SNPS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l1">
+      <div class="layer-head">
+        <span class="numeral">II</span>
+        <span class="layer-title">Foundry &amp; Equipment</span>
+      </div>
+      <p class="layer-desc">The physical toolmakers. Without this layer, no advanced chip gets made — lithography, etching, and deposition tools are the real bottleneck of the entire stack.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="TSM"><div><span class="name">TSMC</span><span class="role">Contract chip manufacturing</span></div><div class="right" data-tooltip=""><span class="ticker-sym">TSM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ASML"><div><span class="name">ASML</span><span class="role">EUV lithography monopoly</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ASML</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="AMAT"><div><span class="name">Applied Materials</span><span class="role">Wafer fab equipment</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AMAT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="LRCX"><div><span class="name">Lam Research</span><span class="role">Etch & deposition</span></div><div class="right" data-tooltip=""><span class="ticker-sym">LRCX</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="KLAC"><div><span class="name">KLA Corp</span><span class="role">Process control & inspection</span></div><div class="right" data-tooltip=""><span class="ticker-sym">KLAC</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l2">
+      <div class="layer-head">
+        <span class="numeral">III</span>
+        <span class="layer-title">Silicon</span>
+      </div>
+      <p class="layer-desc">The chip designers. These companies design the GPUs, accelerators, and CPU architectures that actually run AI workloads, then hand manufacturing to Layer II.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="NVDA"><div><span class="name">Nvidia</span><span class="role">AI accelerator leader</span></div><div class="right" data-tooltip=""><span class="ticker-sym">NVDA</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="AVGO"><div><span class="name">Broadcom</span><span class="role">Custom AI silicon (ASICs)</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AVGO</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="AMD"><div><span class="name">AMD</span><span class="role">GPU & CPU challenger</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AMD</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="INTC"><div><span class="name">Intel</span><span class="role">CPU incumbent, foundry bet</span></div><div class="right" data-tooltip=""><span class="ticker-sym">INTC</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="QCOM"><div><span class="name">Qualcomm</span><span class="role">Edge & mobile AI chips</span></div><div class="right" data-tooltip=""><span class="ticker-sym">QCOM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ARM"><div><span class="name">Arm Holdings</span><span class="role">CPU architecture licensor</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ARM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CBRS"><div><span class="name">Cerebras</span><span class="role">Wafer-scale AI inference chips</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CBRS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l3">
+      <div class="layer-head">
+        <span class="numeral">IV</span>
+        <span class="layer-title">Networking &amp; Optics</span>
+      </div>
+      <p class="layer-desc">The connective tissue. Chips are useless if data can't move between them fast enough. Photonics, optical transceivers, and switches carry traffic between GPUs, racks, and data centers.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="LITE"><div><span class="name">Lumentum</span><span class="role">Photonic integrated circuits</span></div><div class="right" data-tooltip=""><span class="ticker-sym">LITE</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="COHR"><div><span class="name">Coherent</span><span class="role">Photonics for AI data centers</span></div><div class="right" data-tooltip=""><span class="ticker-sym">COHR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="AAOI"><div><span class="name">Applied Optoelectronics</span><span class="role">Optical transceivers</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AAOI</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="VIAV"><div><span class="name">Viavi Solutions</span><span class="role">Network testing & assurance</span></div><div class="right" data-tooltip=""><span class="ticker-sym">VIAV</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="MRVL"><div><span class="name">Marvell</span><span class="role">Custom silicon for data infra</span></div><div class="right" data-tooltip=""><span class="ticker-sym">MRVL</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CRDO"><div><span class="name">Credo</span><span class="role">High-speed connectivity for AI</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CRDO</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ALAB"><div><span class="name">Astera Labs</span><span class="role">Connectivity for AI clusters</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ALAB</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ANET"><div><span class="name">Arista Networks</span><span class="role">Cloud networking switches</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ANET</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CSCO"><div><span class="name">Cisco</span><span class="role">Enterprise networking incumbent</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CSCO</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CIEN"><div><span class="name">Ciena</span><span class="role">Optical networking systems</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CIEN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="APH"><div><span class="name">Amphenol</span><span class="role">High-speed interconnects</span></div><div class="right" data-tooltip=""><span class="ticker-sym">APH</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="SMTC"><div><span class="name">Semtech</span><span class="role">Optical modules & signal ICs</span></div><div class="right" data-tooltip=""><span class="ticker-sym">SMTC</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l4">
+      <div class="layer-head">
+        <span class="numeral">V</span>
+        <span class="layer-title">Memory</span>
+      </div>
+      <p class="layer-desc">The bottleneck of the moment. DRAM and NAND feed every GPU cluster — HBM demand has flipped memory from a boring commodity business into one of the tightest markets in tech.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="MU"><div><span class="name">Micron</span><span class="role">US DRAM & HBM</span></div><div class="right" data-tooltip=""><span class="ticker-sym">MU</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="005930.KS" data-market="non-us"><div><span class="name">Samsung</span><span class="role">DRAM & HBM, largest scale</span></div><div class="right" data-tooltip="Non-US exchange — not covered" title="Non-US exchange — not covered"><span class="ticker-sym">005930.KS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="000660.KS" data-market="non-us"><div><span class="name">SK Hynix</span><span class="role">HBM share leader</span></div><div class="right" data-tooltip="Non-US exchange — not covered" title="Non-US exchange — not covered"><span class="ticker-sym">000660.KS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="SNDK"><div><span class="name">SanDisk</span><span class="role">NAND flash & storage</span></div><div class="right" data-tooltip=""><span class="ticker-sym">SNDK</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="WDC"><div><span class="name">Western Digital</span><span class="role">Storage & NAND</span></div><div class="right" data-tooltip=""><span class="ticker-sym">WDC</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="285A.T" data-market="non-us"><div><span class="name">Kioxia</span><span class="role">NAND, Toshiba spinoff</span></div><div class="right" data-tooltip="Non-US exchange — not covered" title="Non-US exchange — not covered"><span class="ticker-sym">285A.T</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="STX"><div><span class="name">Seagate</span><span class="role">Hard drives & storage</span></div><div class="right" data-tooltip=""><span class="ticker-sym">STX</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="PSTG"><div><span class="name">Pure Storage</span><span class="role">Flash storage for AI data</span></div><div class="right" data-tooltip=""><span class="ticker-sym">PSTG</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l5">
+      <div class="layer-head">
+        <span class="numeral">VI</span>
+        <span class="layer-title">Models &amp; Software</span>
+      </div>
+      <p class="layer-desc">Where compute becomes a product. These companies build or deploy the AI models themselves, and largely decide how much upstream demand gets pulled through the stack.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="MSFT"><div><span class="name">Microsoft</span><span class="role">Azure AI, OpenAI partner</span></div><div class="right" data-tooltip=""><span class="ticker-sym">MSFT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="GOOGL"><div><span class="name">Alphabet</span><span class="role">Gemini, TPUs, DeepMind</span></div><div class="right" data-tooltip=""><span class="ticker-sym">GOOGL</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="META"><div><span class="name">Meta</span><span class="role">Llama, largest AI capex</span></div><div class="right" data-tooltip=""><span class="ticker-sym">META</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="PLTR"><div><span class="name">Palantir</span><span class="role">Enterprise AI deployment</span></div><div class="right" data-tooltip=""><span class="ticker-sym">PLTR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="Private" data-market="private"><div><span class="name">Anthropic</span><span class="role">Claude, safety-focused frontier lab</span></div><div class="right" data-tooltip="Private company — no public ticker" title="Private company — no public ticker"><span class="ticker-sym">Private</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="Private" data-market="private"><div><span class="name">OpenAI</span><span class="role">ChatGPT, GPT model family</span></div><div class="right" data-tooltip="Private company — no public ticker" title="Private company — no public ticker"><span class="ticker-sym">Private</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="Private" data-market="private"><div><span class="name">xAI</span><span class="role">Grok model family</span></div><div class="right" data-tooltip="Private company — no public ticker" title="Private company — no public ticker"><span class="ticker-sym">Private</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="Private" data-market="private"><div><span class="name">Mistral AI</span><span class="role">Open-weight European frontier lab</span></div><div class="right" data-tooltip="Private company — no public ticker" title="Private company — no public ticker"><span class="ticker-sym">Private</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="Private" data-market="private"><div><span class="name">Perplexity</span><span class="role">AI-powered answer engine</span></div><div class="right" data-tooltip="Private company — no public ticker" title="Private company — no public ticker"><span class="ticker-sym">Private</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l6">
+      <div class="layer-head">
+        <span class="numeral">VII</span>
+        <span class="layer-title">Cloud Infrastructure</span>
+      </div>
+      <p class="layer-desc">The rented compute layer. Rather than build data centers themselves, most AI developers rent GPU capacity from hyperscalers, pure-play "neoclouds," former crypto miners pivoting to AI compute, or colocation landlords.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="AMZN"><div><span class="name">Amazon (AWS)</span><span class="role">Largest cloud provider</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AMZN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ORCL"><div><span class="name">Oracle</span><span class="role">OCI, aggressive AI capex</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ORCL</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CRWV"><div><span class="name">CoreWeave</span><span class="role">Pure-play GPU cloud</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CRWV</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="NBIS"><div><span class="name">Nebius</span><span class="role">Ex-Yandex AI cloud</span></div><div class="right" data-tooltip=""><span class="ticker-sym">NBIS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="APLD"><div><span class="name">Applied Digital</span><span class="role">AI data center leasing</span></div><div class="right" data-tooltip=""><span class="ticker-sym">APLD</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="IREN"><div><span class="name">IREN</span><span class="role">Ex-crypto miner, now AI compute</span></div><div class="right" data-tooltip=""><span class="ticker-sym">IREN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="WULF"><div><span class="name">TeraWulf</span><span class="role">Ex-crypto miner, now AI compute</span></div><div class="right" data-tooltip=""><span class="ticker-sym">WULF</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CIFR"><div><span class="name">Cipher Mining</span><span class="role">Ex-crypto miner, now AI compute</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CIFR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="HUT"><div><span class="name">Hut 8</span><span class="role">Ex-crypto miner, now AI compute</span></div><div class="right" data-tooltip=""><span class="ticker-sym">HUT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="GLXY"><div><span class="name">Galaxy Digital</span><span class="role">Digital assets pivoting to AI infra</span></div><div class="right" data-tooltip=""><span class="ticker-sym">GLXY</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="EQIX"><div><span class="name">Equinix</span><span class="role">Data center colocation REIT</span></div><div class="right" data-tooltip=""><span class="ticker-sym">EQIX</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="DLR"><div><span class="name">Digital Realty</span><span class="role">Data center colocation REIT</span></div><div class="right" data-tooltip=""><span class="ticker-sym">DLR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l7">
+      <div class="layer-head">
+        <span class="numeral">VIII</span>
+        <span class="layer-title">Security</span>
+      </div>
+      <p class="layer-desc">Someone has to protect the cloud workloads above and, increasingly, the models themselves — a newer front now that AI can find software vulnerabilities near-autonomously.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="CRWD"><div><span class="name">CrowdStrike</span><span class="role">Endpoint & AI-driven threat detection</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CRWD</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="PANW"><div><span class="name">Palo Alto Networks</span><span class="role">Network & cloud security platform</span></div><div class="right" data-tooltip=""><span class="ticker-sym">PANW</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="NET"><div><span class="name">Cloudflare</span><span class="role">Network layer AI agents run through</span></div><div class="right" data-tooltip=""><span class="ticker-sym">NET</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ZS"><div><span class="name">Zscaler</span><span class="role">Zero-trust cloud security</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ZS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="FTNT"><div><span class="name">Fortinet</span><span class="role">Network security, organic cloud growth</span></div><div class="right" data-tooltip=""><span class="ticker-sym">FTNT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="DDOG"><div><span class="name">Datadog</span><span class="role">Cloud monitoring & observability</span></div><div class="right" data-tooltip=""><span class="ticker-sym">DDOG</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l8">
+      <div class="layer-head">
+        <span class="numeral">IX</span>
+        <span class="layer-title">Power &amp; Cooling</span>
+      </div>
+      <p class="layer-desc">The physical bottleneck behind the bottleneck. AI racks draw so much power and heat that generation, grid capacity, and thermal management have become their own investable category.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="VRT"><div><span class="name">Vertiv</span><span class="role">Data center power & liquid cooling</span></div><div class="right" data-tooltip=""><span class="ticker-sym">VRT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="ETN"><div><span class="name">Eaton</span><span class="role">Grid-to-chip power, record backlog</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ETN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="GEV"><div><span class="name">GE Vernova</span><span class="role">Turbines & grid electrification</span></div><div class="right" data-tooltip=""><span class="ticker-sym">GEV</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CEG"><div><span class="name">Constellation Energy</span><span class="role">Largest US nuclear fleet</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CEG</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="VST"><div><span class="name">Vistra</span><span class="role">Independent power, AWS/Meta PPAs</span></div><div class="right" data-tooltip=""><span class="ticker-sym">VST</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="PWR"><div><span class="name">Quanta Services</span><span class="role">Grid construction, record backlog</span></div><div class="right" data-tooltip=""><span class="ticker-sym">PWR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="NVT"><div><span class="name">nVent Electric</span><span class="role">Liquid cooling distribution</span></div><div class="right" data-tooltip=""><span class="ticker-sym">NVT</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="NEE"><div><span class="name">NextEra Energy</span><span class="role">Largest US renewable power producer</span></div><div class="right" data-tooltip=""><span class="ticker-sym">NEE</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="TLN"><div><span class="name">Talen Energy</span><span class="role">Nuclear power, direct hyperscaler PPAs</span></div><div class="right" data-tooltip=""><span class="ticker-sym">TLN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="OKLO"><div><span class="name">Oklo</span><span class="role">Small modular reactor developer</span></div><div class="right" data-tooltip=""><span class="ticker-sym">OKLO</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="BE"><div><span class="name">Bloom Energy</span><span class="role">On-site fuel cell power</span></div><div class="right" data-tooltip=""><span class="ticker-sym">BE</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="l9">
+      <div class="layer-head">
+        <span class="numeral">X</span>
+        <span class="layer-title">Consumer &amp; Devices</span>
+      </div>
+      <p class="layer-desc">Where the stack meets your hands. Consumer hardware absorbs the AI buildout's cost pressure directly — memory shortages upstream are already showing up as price hikes here.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="AAPL"><div><span class="name">Apple</span><span class="role">iPhone, Mac, on-device AI</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AAPL</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="DELL"><div><span class="name">Dell Technologies</span><span class="role">AI PCs & servers</span></div><div class="right" data-tooltip=""><span class="ticker-sym">DELL</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="HPQ"><div><span class="name">HP Inc.</span><span class="role">Consumer PCs</span></div><div class="right" data-tooltip=""><span class="ticker-sym">HPQ</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="005930.KS" data-market="non-us"><div><span class="name">Samsung Electronics</span><span class="role">Phones + own memory</span></div><div class="right" data-tooltip="Non-US exchange — not covered" title="Non-US exchange — not covered"><span class="ticker-sym">005930.KS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layer" id="ln">
+      <div class="layer-head">
+        <span class="numeral">＋</span>
+        <span class="layer-title">Notable Stocks</span>
+        <span class="layer-tag">CATCH-ALL</span>
+      </div>
+      <p class="layer-desc">Real names worth tracking that don't cleanly sit in one layer above — diversified enterprise software giants, the contract manufacturers who physically assemble servers, the utilities that supply the water AI data centers need for cooling, and the rare earth miners behind the magnets in motors, robotics, and defense electronics.</p>
+      <div class="rail">
+        <div class="grid">
+          <div class="chip" data-ticker="ADBE"><div><span class="name">Adobe</span><span class="role">AI-powered creative software</span></div><div class="right" data-tooltip=""><span class="ticker-sym">ADBE</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CRM"><div><span class="name">Salesforce</span><span class="role">Agentforce, AI-driven CRM</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CRM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="SAP"><div><span class="name">SAP</span><span class="role">Enterprise resource planning + AI</span></div><div class="right" data-tooltip=""><span class="ticker-sym">SAP</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="IBM"><div><span class="name">IBM</span><span class="role">watsonx, hybrid cloud & AI consulting</span></div><div class="right" data-tooltip=""><span class="ticker-sym">IBM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="CLS"><div><span class="name">Celestica</span><span class="role">Contract manufacturer, AI servers</span></div><div class="right" data-tooltip=""><span class="ticker-sym">CLS</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="FLEX"><div><span class="name">Flex</span><span class="role">Contract manufacturer, data center gear</span></div><div class="right" data-tooltip=""><span class="ticker-sym">FLEX</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="FN"><div><span class="name">Fabrinet</span><span class="role">Contract manufacturer, optical parts</span></div><div class="right" data-tooltip=""><span class="ticker-sym">FN</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="SANM"><div><span class="name">Sanmina</span><span class="role">Contract manufacturer, electronics</span></div><div class="right" data-tooltip=""><span class="ticker-sym">SANM</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="AWK"><div><span class="name">American Water</span><span class="role">Water utility, data center cooling supply</span></div><div class="right" data-tooltip=""><span class="ticker-sym">AWK</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="WTRG"><div><span class="name">Essential Utilities</span><span class="role">Water & wastewater utility</span></div><div class="right" data-tooltip=""><span class="ticker-sym">WTRG</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="BMI"><div><span class="name">Badger Meter</span><span class="role">Smart water measurement</span></div><div class="right" data-tooltip=""><span class="ticker-sym">BMI</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="LEU"><div><span class="name">Centrus Energy</span><span class="role">Uranium enrichment for nuclear power</span></div><div class="right" data-tooltip=""><span class="ticker-sym">LEU</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="MP"><div><span class="name">MP Materials</span><span class="role">US rare earth mining & magnets</span></div><div class="right" data-tooltip=""><span class="ticker-sym">MP</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="NEO" data-market="non-us"><div><span class="name">Neo Performance Materials</span><span class="role">Rare earth processing & magnetics</span></div><div class="right" data-tooltip="Non-US exchange — not covered" title="Non-US exchange — not covered"><span class="ticker-sym">NEO</span><span class="metrics" data-field="metrics">NA</span></div></div>
+          <div class="chip" data-ticker="USAR"><div><span class="name">USA Rare Earth</span><span class="role">Mine-to-magnet rare earth supply chain</span></div><div class="right" data-tooltip=""><span class="ticker-sym">USAR</span><span class="metrics" data-field="metrics">NA</span></div></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <strong>Not investment advice.</strong> This is an illustrative map of how companies relate within the AI supply chain — a reference for orientation, not a price feed, index, or recommendation. Company placement is simplified; many span more than one layer.
+
+    <div class="block">
+      <strong>US market only:</strong> tickers on foreign exchanges — Neo Performance Materials (TSX), Samsung and SK Hynix (KRX), Kioxia (TSE) — and private companies (Anthropic, OpenAI, xAI, Mistral AI, Perplexity) display as <strong>NA</strong>. Alpaca only covers US-listed securities, so these are permanently out of scope for the automated feed rather than pending.
+    </div>
+    <div class="block">
+      <strong>Metrics, updated weekly:</strong> each priced ticker shows % change from its 52-week high (52WH), % change from its 52-week low (52WL), and year-to-date % (YTD) — green/red for up/down. Hover (or long-press on mobile) a ticker for its actual price and as-of date. The "Last refreshed" line at the top of the page reflects the date GitHub Actions last pulled data — whether from the Friday schedule or a manual run, it always resolves to the last completed US market close, never an in-progress session.
+    </div>
+  </footer>
+
+<script>
+  const chips = Array.from(document.querySelectorAll('.chip'));
+  const items = chips.map(c => {
+    const name = c.querySelector('.name').textContent.trim();
+    const sym = c.querySelector('.ticker-sym').textContent.trim();
+    return `<span><b>${sym}</b> ${name}</span>`;
+  }).join('');
+  document.getElementById('ticker').innerHTML = items + items;
+
+  const sections = document.querySelectorAll('.layer');
+  const navLinks = document.querySelectorAll('.railnav a');
+  const spy = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if(entry.isIntersecting){
+        const id = entry.target.getAttribute('id');
+        navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px' });
+  sections.forEach(s => spy.observe(s));
+
+  /* ---------------- Populate metrics from prices.json ---------------- */
+  fetch('./prices.json', { cache: 'no-store' })
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      if (!data) return;
+      const meta = data._meta || {};
+      const refreshEl = document.getElementById('lastRefresh');
+      if (refreshEl && meta.asOf) {
+        refreshEl.textContent = 'Last refreshed: ' + meta.asOf + ' close (weekly, US market only)';
+        refreshEl.classList.add('live');
+      }
+
+      const fmtPct = (v) => (v == null ? null : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
+      const cls = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
+      const fmtPrice = (v, cur) => (v == null ? null : (cur === 'CAD' ? 'C$' : '$') + v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+
+      document.querySelectorAll('.chip[data-ticker]').forEach(chip => {
+        // Non-US and private tickers are permanently NA — never touched by the feed.
+        if (chip.getAttribute('data-market')) return;
+
+        const ticker = chip.getAttribute('data-ticker');
+        const entry = data[ticker];
+        if (!entry) return; // no data yet for this US ticker — "NA" placeholder remains
+
+        const price = entry.price;
+        const high52 = entry.high52;
+        const low52 = entry.low52;
+        const ytdStart = entry.ytdStart;
+
+        const pctFromHigh = (price != null && high52) ? ((price - high52) / high52) * 100 : null;
+        const pctFromLow  = (price != null && low52)  ? ((price - low52)  / low52)  * 100 : null;
+        const pctYtd      = (price != null && ytdStart) ? ((price - ytdStart) / ytdStart) * 100 : null;
+
+        const metricsEl = chip.querySelector('.metrics');
+        if (metricsEl) {
+          const parts = [];
+          if (pctFromHigh != null) parts.push(`<span class="m ${cls(pctFromHigh)}">52WH ${fmtPct(pctFromHigh)}</span>`);
+          if (pctFromLow  != null) parts.push(`<span class="m ${cls(pctFromLow)}">52WL ${fmtPct(pctFromLow)}</span>`);
+          if (pctYtd      != null) parts.push(`<span class="m ${cls(pctYtd)}">YTD ${fmtPct(pctYtd)}</span>`);
+          metricsEl.innerHTML = parts.length ? parts.join('') : 'NA';
+        }
+
+        const rightEl = chip.querySelector('.right');
+        if (rightEl && price != null) {
+          const priceStr = fmtPrice(price, entry.currency);
+          const dateStr = meta.asOf ? ` · ${meta.asOf} close` : '';
+          rightEl.setAttribute('data-tooltip', priceStr + dateStr);
+          rightEl.setAttribute('title', priceStr + dateStr);
+        }
+      });
+    })
+    .catch(() => { /* prices.json missing or unreachable — "NA" placeholders remain */ });
+
+
+
+</script>
+
+</body>
+</html>
