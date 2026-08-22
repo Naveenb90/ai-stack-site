@@ -27,10 +27,7 @@ jobs:
       - name: Install dependencies
         run: pip install requests
 
-      - name: Fetch prices from Alpaca
-        env:
-          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
-          ALPACA_API_SECRET: ${{ secrets.ALPACA_API_SECRET }}
+      - name: Fetch prices from Yahoo Finance
         run: python scripts/update_prices.py
 
       - name: Commit updated prices.json

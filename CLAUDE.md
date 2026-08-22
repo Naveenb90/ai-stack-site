@@ -8,7 +8,7 @@ This repo holds a reference map of public (and a few private) companies across t
 index.html                    # Main page — hero, search/filters, layer list, embedded bubble map
 ai-stack-bubbles.html                # Standalone full-screen companion — same bubble map, no price data
 prices.json                          # Shared price data, read by index.html at load time
-scripts/update_prices.py             # Pulls weekly data (Yahoo primary, Alpaca fallback), overwrites prices.json
+scripts/update_prices.py             # Pulls weekly data from Yahoo Finance, overwrites prices.json
 .github/workflows/update-prices.yml  # Runs update_prices.py every Friday after close
 ```
 
@@ -54,7 +54,6 @@ If you add a company, decide which layer it actually belongs to before defaultin
   "_meta": {
     "asOf": "2026-08-14",
     "source": "...",
-    "sources": { "yahoo": 78, "alpaca": 3 },
     "historyLength": 60,
     "note": "..."
   },
@@ -69,7 +68,7 @@ If you add a company, decide which layer it actually belongs to before defaultin
 }
 ```
 
-- Only **US-listed tickers** appear here. Neither Yahoo nor Alpaca (the two data sources) covers foreign exchanges.
+- Only **US-listed tickers** appear here. Yahoo (the sole data source) doesn't cover foreign exchanges.
 - `ytdStart` is the close on the year's first trading day — used to compute YTD % client-side.
 - `history` is the last 60 daily closes, oldest first — powers the sparkline and the last-20-days stat (`history[length-21]` vs. current). Not a full audit trail, just enough for those two UI elements.
 - The page computes everything else itself: % from 52-week high, % from 52-week low, YTD %, last-20-days %. `prices.json` never stores pre-computed percentages — only raw prices/closes. If you want to add a new derived metric, do the math in `index.html`'s modal-populate script, not in the Python script.
@@ -87,11 +86,10 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 ## The weekly pipeline
 
 - `scripts/update_prices.py` runs every **Friday ~21:15 UTC** (~4:15pm ET, after US close) via the GitHub Action, and can also be triggered manually from the Actions tab.
-- **Yahoo Finance is the primary source, Alpaca is fallback-only.** Yahoo's public chart endpoint needs no API key and handles the ~90-ticker roster fine (one request per ticker, small delay between each). Alpaca is tried, batched, only for whatever Yahoo didn't return — an outage, a bad symbol, Yahoo's response shape changing. This is a deliberate flip from the pipeline's original Alpaca-only design; don't revert it without a good reason (Alpaca repeatedly failed in production here, both on auth and on this roster's size vs. its free-tier limits).
-- **Alpaca credentials are optional.** Read via `os.environ.get(...)`, not `os.environ[...]`. Missing secrets just skip the fallback (logged) rather than failing the whole run — Yahoo alone is expected to succeed.
-- **Manual triggers are safe at any time.** The script computes the *last completed* US market close itself (`last_completed_close_date()`) rather than trusting a live snapshot — so a Tuesday-afternoon manual run still pulls Monday's close, not a partial in-progress session. Both fetch paths filter bars to `date <= as_of_date`; Yahoo's chart endpoint in particular returns a partial current-day bar during market hours, so don't remove that filter.
-- Holiday handling is **approximate** — Mon–Fri only, no actual market-holiday calendar. A manual run on a holiday requests that date but naturally falls back to the last real session anyway (both fetch paths always take the last *available* bar, not a specific date match).
-- `_meta.asOf` in the output reflects the *actual* session date the data came from, not just the requested date, so the page's "Last refreshed" line stays honest if the two ever disagree. `_meta.sources` records the yahoo/alpaca split for the run — worth checking occasionally for an unexpectedly high Alpaca count (a sign Yahoo is having a bad day).
+- **Yahoo Finance is the sole data source.** Its public chart endpoint needs no API key and handles the ~80-ticker roster fine (one request per ticker, small delay between each). An Alpaca fallback existed briefly for whatever Yahoo didn't return, but was removed after two real weekly runs both showed 0 tickers ever needing it (0/81, 0/80) — pure unused complexity. `ALPACA_API_KEY`/`ALPACA_API_SECRET` are gone from both the script and the workflow's `env:` block; don't re-add them without a concrete reason (a Yahoo outage that actually happens, not a hypothetical one).
+- **Manual triggers are safe at any time.** The script computes the *last completed* US market close itself (`last_completed_close_date()`) rather than trusting a live snapshot — so a Tuesday-afternoon manual run still pulls Monday's close, not a partial in-progress session. `fetch_yahoo_bars` filters bars to `date <= as_of_date`; Yahoo's chart endpoint returns a partial current-day bar during market hours, so don't remove that filter.
+- Holiday handling is **approximate** — Mon–Fri only, no actual market-holiday calendar. A manual run on a holiday requests that date but naturally falls back to the last real session anyway (`fetch_yahoo_bars` always takes the last *available* bar, not a specific date match).
+- `_meta.asOf` in the output reflects the *actual* session date the data came from, not just the requested date, so the page's "Last refreshed" line stays honest if the two ever disagree.
 
 ## Adding a ticker to the weekly pull
 
@@ -106,5 +104,5 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 - **D3 loads from a CDN.** Both `index.html`'s embedded bubble map and `ai-stack-bubbles.html` load `d3.min.js` from `cdnjs.cloudflare.com` at runtime — fine for a public GitHub Pages site, but worth knowing if this ever needs to run somewhere with a stricter content-security policy.
 - **Manual, human-verified seed data.** The current values in `prices.json` were originally researched and entered by hand before the automated pipeline existed. Once the Action has run at least once successfully, treat the file as machine-owned — don't hand-edit it and expect it to survive the next run.
 - **Currency:** everything is USD except Neo Performance Materials (NEO), which is CAD and TSX-listed — it's in the permanent-no-data bucket precisely because of this, not a bug.
-- **Yahoo's chart endpoint is unofficial/undocumented.** It's been reliable in practice but can change shape or start blocking without notice — that's exactly why the Alpaca fallback exists. If Yahoo ever breaks outright, the Alpaca path (with valid secrets) is the stopgap, not a full replacement at current free-tier limits for this roster size.
+- **Yahoo's chart endpoint is unofficial/undocumented, and it's now the only data source.** It's been reliable in practice but can change shape or start blocking without notice. There is currently no fallback (Alpaca was removed as unused — see git log / README "Notes on this cut"). If Yahoo ever breaks outright, `missing` tickers just get logged and left out of `prices.json` for that run rather than failing the whole pipeline — check `docs/data-flow.md` before deciding whether a fallback is worth re-adding.
 - **This is a reference/illustrative tool, not investment advice.** Keep that framing in any copy changes — it's stated explicitly in the page footer and should stay there.
