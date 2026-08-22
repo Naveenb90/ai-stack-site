@@ -537,14 +537,13 @@
   /* ───────── Modal: price panel ───────── */
   .m-price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);}
   .m-price-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
-  .m-price{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--bone);}
-  .m-price.na{color:var(--muted);font-size:20px;font-style:italic;}
+  .m-price{font-family:'Fraunces',serif;font-size:18px;font-weight:600;color:var(--bone);}
+  .m-price.na{color:var(--muted);font-size:14px;font-style:italic;}
   .m-sparkline{width:130px;height:50px;flex-shrink:0;}
   .m-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
   .m-stat{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;}
   .m-stat-label{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
-  .m-stat-value{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;color:var(--bone);}
-  .m-stat-pct{font-family:'IBM Plex Mono',monospace;font-size:11px;margin-top:3px;}
+  .m-stat-value{font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:600;color:var(--bone);}
   .m-stat-pct-big{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;}
   .m-stat-sub{font-size:10px;color:var(--muted);margin-top:3px;}
   .up{color:var(--up);}
@@ -774,12 +773,12 @@
       <div class="m-stat">
         <div class="m-stat-label">52 Week High</div>
         <div class="m-stat-value" id="mHigh"></div>
-        <div class="m-stat-pct" id="mHighPct"></div>
+        <div class="m-stat-pct-big" id="mHighPct"></div>
       </div>
       <div class="m-stat">
         <div class="m-stat-label">52 Week Low</div>
         <div class="m-stat-value" id="mLow"></div>
-        <div class="m-stat-pct" id="mLowPct"></div>
+        <div class="m-stat-pct-big" id="mLowPct"></div>
       </div>
       <div class="m-stat">
         <div class="m-stat-label">YTD Performance</div>
