@@ -61,7 +61,7 @@ TICKERS = [
     "NVDA", "AVGO", "AMD", "INTC", "QCOM", "ARM", "CBRS",
     "LITE", "COHR", "AAOI", "VIAV", "MRVL", "CRDO", "ALAB", "ANET",
     "CSCO", "CIEN", "APH", "SMTC",
-    "MU", "SNDK", "WDC", "STX", "PSTG",
+    "MU", "SNDK", "WDC", "STX", "P",
     "MSFT", "GOOGL", "META", "PLTR",
     "AMZN", "ORCL", "CRWV", "NBIS", "APLD", "IREN", "WULF", "CIFR", "HUT",
     "GLXY", "EQIX", "DLR",
