@@ -4,977 +4,1453 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The AI Stack — Market Map</title>
+<meta name="description" content="Ten layers of the AI economy, ordered upstream to downstream, with live weekly prices, 52-week ranges, and a bubble-map view of the whole supply chain.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
   :root{
-    --ink:#0D1219;
-    --panel:#131B26;
-    --panel-line:#232E3D;
+    --ink:#090D13;
+    --ink-2:#0D1219;
+    --panel:#111925;
+    --panel-2:#151F2D;
+    --line:rgba(139,148,163,.16);
+    --line-strong:rgba(139,148,163,.28);
     --bone:#EDEAE1;
+    --bone-dim:#C9C6BC;
     --muted:#8B94A3;
     --brass:#C9A05C;
-    --l0:#6FAF9E;
-    --l1:#6B8CAE;
-    --l2:#C9A05C;
-    --l3:#8C7FD1;
-    --l4:#7FA88E;
-    --l5:#B98BC9;
-    --l6:#5EA8C7;
-    --l7:#B85C6B;
-    --l8:#C0654F;
-    --l9:#C08552;
-    --ln:#9C8F73;
-    --up:#6FBF8C;
-    --down:#D9776B;
+    --brass-soft:rgba(201,160,92,.14);
+    --l0:#6FAF9E; --l1:#6B8CAE; --l2:#C9A05C; --l3:#8C7FD1;
+    --l4:#7FA88E; --l5:#B98BC9; --l6:#5EA8C7; --l7:#B85C6B;
+    --l8:#C0654F; --l9:#C08552; --ln:#9C8F73;
+    --up:#6FBF8C; --down:#D9776B;
+    --radius:14px;
+    --ease:cubic-bezier(.22,.68,.32,1);
+    --nav-h:64px;
   }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  html{scroll-behavior:smooth;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 24px);}
   body{
     background:var(--ink);
     color:var(--bone);
-    font-family:'IBM Plex Sans', sans-serif;
+    font-family:'IBM Plex Sans',sans-serif;
     -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
     overflow-x:hidden;
+    line-height:1.55;
   }
-  ::selection{background:var(--brass); color:var(--ink);}
+  ::selection{background:var(--brass);color:var(--ink);}
+  ::-webkit-scrollbar{width:10px;}
+  ::-webkit-scrollbar-track{background:var(--ink);}
+  ::-webkit-scrollbar-thumb{background:#232E3D;border-radius:6px;border:2px solid var(--ink);}
+  ::-webkit-scrollbar-thumb:hover{background:#324053;}
 
-  .ticker-wrap{
-    background:#0A0E13;
-    border-bottom:1px solid var(--panel-line);
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .container{max-width:1120px;margin:0 auto;padding:0 clamp(20px,4vw,40px);}
+
+  /* ───────── Nav ───────── */
+  .nav{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    height:var(--nav-h);
+    display:flex;align-items:center;
+    background:rgba(9,13,19,.72);
+    -webkit-backdrop-filter:blur(18px) saturate(1.4);
+    backdrop-filter:blur(18px) saturate(1.4);
+    border-bottom:1px solid transparent;
+    transition:border-color .3s ease, background .3s ease;
+  }
+  .nav.scrolled{border-bottom-color:var(--line);background:rgba(9,13,19,.86);}
+  .nav-inner{
+    width:100%;max-width:1120px;margin:0 auto;
+    padding:0 clamp(20px,4vw,40px);
+    display:flex;align-items:center;gap:28px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:11px;
+    text-decoration:none;color:var(--bone);
+    margin-right:auto;
+  }
+  .brand-mark{
+    width:30px;height:30px;border-radius:9px;
+    background:linear-gradient(135deg,var(--brass-soft),rgba(201,160,92,.03));
+    border:1px solid rgba(201,160,92,.45);
+    display:grid;place-items:center;
+    font-family:'Fraunces',serif;font-weight:700;font-size:13px;color:var(--brass);
+    letter-spacing:.02em;
+  }
+  .brand-name{
+    font-family:'Fraunces',serif;font-weight:600;font-size:16.5px;letter-spacing:-.01em;
+  }
+  .brand-name em{font-style:italic;font-weight:400;color:var(--brass);}
+  .nav-links{display:flex;align-items:center;gap:4px;}
+  .nav-links a{
+    font-size:13.5px;font-weight:500;color:var(--muted);
+    text-decoration:none;padding:8px 13px;border-radius:8px;
+    transition:color .2s ease, background .2s ease;
+  }
+  .nav-links a:hover{color:var(--bone);background:rgba(255,255,255,.04);}
+  .nav-links a.active{color:var(--bone);}
+  .nav-cta{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--brass);text-decoration:none;
+    border:1px solid rgba(201,160,92,.4);border-radius:999px;
+    padding:8px 16px;white-space:nowrap;
+    transition:background .25s ease,border-color .25s ease,transform .25s var(--ease);
+  }
+  .nav-cta:hover{background:var(--brass-soft);border-color:var(--brass);transform:translateY(-1px);}
+  @media (max-width:820px){ .nav-links{display:none;} }
+
+  /* ───────── Hero ───────── */
+  .hero{
+    position:relative;
+    padding:calc(var(--nav-h) + clamp(64px,11vh,120px)) 0 clamp(48px,8vh,88px);
     overflow:hidden;
-    white-space:nowrap;
-    padding:9px 0;
-    position:sticky; top:0; z-index:50;
+  }
+  .hero-bg{
+    position:absolute;inset:0;pointer-events:none;
+  }
+  .hero-bg::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(ellipse 900px 480px at 70% -10%, rgba(201,160,92,.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 12% 30%, rgba(107,140,174,.07), transparent 65%);
+  }
+  .hero-bg::after{
+    content:"";position:absolute;inset:0;
+    background-image:
+      linear-gradient(rgba(139,148,163,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(139,148,163,.05) 1px, transparent 1px);
+    background-size:56px 56px;
+    -webkit-mask-image:radial-gradient(ellipse 75% 65% at 50% 20%, black 20%, transparent 75%);
+    mask-image:radial-gradient(ellipse 75% 65% at 50% 20%, black 20%, transparent 75%);
+  }
+  .hero-inner{position:relative;max-width:820px;}
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:9px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brass);
+    border:1px solid rgba(201,160,92,.28);
+    background:rgba(201,160,92,.06);
+    padding:7px 15px;border-radius:999px;
+    margin-bottom:26px;
+  }
+  .eyebrow::before{
+    content:"";width:6px;height:6px;border-radius:50%;
+    background:var(--brass);
+    box-shadow:0 0 10px rgba(201,160,92,.9);
+    animation:pulse 2.6s ease-in-out infinite;
+  }
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  h1{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-optical-sizing:auto;
+    font-size:clamp(44px,8.5vw,84px);
+    line-height:1.02;letter-spacing:-.022em;
+    text-wrap:balance;
+  }
+  h1 em{
+    font-style:italic;font-weight:400;
+    background:linear-gradient(115deg,#E3C185 20%,var(--brass) 55%,#A57F41);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;color:transparent;
+  }
+  .hero-sub{
+    margin-top:24px;
+    font-size:clamp(15.5px,1.7vw,18px);
+    line-height:1.65;color:var(--muted);
+    max-width:58ch;
+  }
+  .hero-actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:36px;}
+  .btn{
+    display:inline-flex;align-items:center;gap:9px;
+    font-size:14px;font-weight:600;text-decoration:none;
+    padding:13px 26px;border-radius:999px;
+    transition:transform .25s var(--ease), box-shadow .25s ease, background .25s ease, border-color .25s ease;
+  }
+  .btn-primary{
+    background:linear-gradient(135deg,#D9B276,var(--brass) 60%,#B08A4A);
+    color:#151006;
+    box-shadow:0 6px 24px -8px rgba(201,160,92,.55);
+  }
+  .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px -8px rgba(201,160,92,.65);}
+  .btn-ghost{
+    color:var(--bone);border:1px solid var(--line-strong);
+    background:rgba(255,255,255,.02);
+  }
+  .btn-ghost:hover{border-color:var(--brass);color:var(--brass);transform:translateY(-2px);}
+  .btn .arrow{transition:transform .25s var(--ease);}
+  .btn:hover .arrow{transform:translateX(3px);}
+
+  .hero-stats{
+    display:flex;flex-wrap:wrap;gap:clamp(28px,5vw,64px);
+    margin-top:clamp(44px,7vh,72px);
+    padding-top:32px;
+    border-top:1px solid var(--line);
+  }
+  .stat .num{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(30px,4vw,42px);letter-spacing:-.02em;
+    color:var(--bone);
+  }
+  .stat .num span{color:var(--brass);}
+  .stat .lbl{
+    margin-top:4px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);
+  }
+  .flow{
+    margin-top:38px;display:flex;align-items:center;gap:12px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+  }
+  .flow .line{
+    flex:1;height:1px;position:relative;
+    background:linear-gradient(90deg,transparent,var(--line-strong) 15%,var(--brass) 50%,var(--line-strong) 85%,transparent);
+  }
+  .flow .line::after{
+    content:"";position:absolute;top:-2.5px;left:0;
+    width:6px;height:6px;border-radius:50%;background:var(--brass);
+    box-shadow:0 0 8px rgba(201,160,92,.8);
+    animation:travel 7s linear infinite;
+  }
+  @keyframes travel{ 0%{left:0;opacity:0;} 8%{opacity:1;} 92%{opacity:1;} 100%{left:calc(100% - 6px);opacity:0;} }
+  .last-refresh{
+    margin-top:18px;display:flex;align-items:center;gap:7px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--muted);
+  }
+  .last-refresh::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;}
+  .last-refresh.live::before{background:var(--up);}
+
+  /* ───────── Ticker ───────── */
+  .ticker-wrap{
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
+    background:rgba(13,18,25,.6);
+    overflow:hidden;white-space:nowrap;
+    padding:12px 0;
+    -webkit-mask-image:linear-gradient(90deg,transparent,black 6%,black 94%,transparent);
+    mask-image:linear-gradient(90deg,transparent,black 6%,black 94%,transparent);
   }
   .ticker{
     display:inline-block;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    letter-spacing:.02em;
-    color:var(--muted);
-    animation:scroll 65s linear infinite;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;letter-spacing:.02em;color:var(--muted);
+    animation:scroll 80s linear infinite;
   }
-  .ticker span{ margin-right:22px; }
-  .ticker b{ color:var(--brass); font-weight:600; }
-  @keyframes scroll{
-    0%{ transform:translateX(0); }
-    100%{ transform:translateX(-50%); }
-  }
+  .ticker-wrap:hover .ticker{animation-play-state:paused;}
+  .ticker span{margin-right:26px;cursor:default;}
+  .ticker b{color:var(--brass);font-weight:600;}
+  @keyframes scroll{ to{transform:translateX(-50%);} }
 
-  header.hero{
-    padding:48px 22px 28px;
-    max-width:760px;
-    margin:0 auto;
+  /* ───────── Section shell ───────── */
+  section.block{padding:clamp(64px,10vh,110px) 0;}
+  .section-head{max-width:680px;margin-bottom:clamp(36px,5vh,56px);}
+  .kicker{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--brass);margin-bottom:14px;
+    display:flex;align-items:center;gap:10px;
   }
-  .eyebrow{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11.5px;
-    letter-spacing:.16em;
-    text-transform:uppercase;
-    color:var(--brass);
-    display:flex;
-    align-items:center;
-    gap:8px;
-    margin-bottom:16px;
+  .kicker::before{content:"";width:22px;height:1px;background:var(--brass);}
+  h2{
+    font-family:'Fraunces',serif;font-weight:600;
+    font-size:clamp(28px,4.2vw,44px);
+    line-height:1.08;letter-spacing:-.018em;text-wrap:balance;
   }
-  .eyebrow::before{
-    content:"";
-    width:6px; height:6px;
-    background:var(--brass);
-    border-radius:50%;
-    display:inline-block;
-  }
-  h1{
-    font-family:'Fraunces', serif;
-    font-weight:600;
-    font-optical-sizing:auto;
-    font-size:clamp(34px, 8vw, 52px);
-    line-height:1.04;
-    letter-spacing:-.01em;
-  }
-  h1 em{
-    font-style:italic;
-    font-weight:400;
-    color:var(--brass);
-  }
-  .sub{
-    margin-top:16px;
-    font-size:15px;
-    line-height:1.6;
-    color:var(--muted);
-    max-width:56ch;
-  }
-  .flow{
-    margin-top:22px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:var(--muted);
-  }
-  .flow .line{
-    flex:1;
-    height:1px;
-    background:linear-gradient(90deg, var(--panel-line), var(--brass), var(--panel-line));
-  }
-  .last-refresh{
-    margin-top:14px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--muted);
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  .last-refresh::before{
-    content:"";
-    width:6px; height:6px;
-    border-radius:50%;
-    background:var(--muted);
-    display:inline-block;
-  }
-  .last-refresh.live::before{ background:var(--up); }
+  h2 em{font-style:italic;font-weight:400;color:var(--brass);}
+  .section-sub{margin-top:16px;font-size:15.5px;line-height:1.65;color:var(--muted);max-width:56ch;}
 
-  .railnav{
-    position:fixed;
-    right:18px; top:50%;
-    transform:translateY(-50%);
-    display:flex; flex-direction:column; gap:9px;
-    z-index:40;
+  /* ───────── Toolbar (search + filters) ───────── */
+  .toolbar{
+    position:sticky;top:var(--nav-h);z-index:60;
+    background:rgba(9,13,19,.82);
+    -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    padding:14px;
+    display:flex;flex-wrap:wrap;gap:10px;align-items:center;
+    box-shadow:0 18px 44px -22px rgba(0,0,0,.7);
+    margin-bottom:clamp(36px,5vh,52px);
   }
-  .railnav a{
-    width:8px; height:8px;
-    border-radius:50%;
-    background:var(--panel-line);
-    display:block;
-    transition:transform .2s ease, background .2s ease;
-    position:relative;
+  .search{
+    flex:1;min-width:220px;position:relative;display:flex;align-items:center;
   }
-  .railnav a:hover, .railnav a.active{ transform:scale(1.4); }
-  .railnav a::after{
-    content:attr(data-label);
-    position:absolute;
-    right:16px; top:50%; transform:translateY(-50%);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:9.5px;
-    color:var(--muted);
+  .search svg{position:absolute;left:14px;width:15px;height:15px;stroke:var(--muted);pointer-events:none;}
+  .search input{
+    width:100%;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:10px;
+    color:var(--bone);
+    font-family:'IBM Plex Sans',sans-serif;font-size:14px;
+    padding:11px 38px 11px 40px;
+    outline:none;
+    transition:border-color .2s ease, box-shadow .2s ease;
+  }
+  .search input::placeholder{color:var(--muted);}
+  .search input:focus{border-color:rgba(201,160,92,.55);box-shadow:0 0 0 3px rgba(201,160,92,.12);}
+  .search .clear{
+    position:absolute;right:8px;
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    font-size:16px;padding:4px 7px;border-radius:6px;line-height:1;
+    display:none;
+  }
+  .search .clear:hover{color:var(--bone);background:rgba(255,255,255,.06);}
+  .search.has-value .clear{display:block;}
+  .seg{
+    display:flex;gap:2px;background:var(--panel);
+    border:1px solid var(--line);border-radius:10px;padding:3px;
+  }
+  .seg button{
+    background:none;border:none;cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;
+    font-size:12.5px;font-weight:500;color:var(--muted);
+    padding:7px 14px;border-radius:8px;
+    transition:color .2s ease, background .2s ease;
     white-space:nowrap;
-    opacity:0;
-    transition:opacity .15s ease;
-    pointer-events:none;
   }
-  .railnav a:hover::after{ opacity:1; }
-  @media (max-width:960px){ .railnav{ display:none; } }
+  .seg button:hover{color:var(--bone);}
+  .seg button.on{background:var(--brass-soft);color:var(--brass);}
+  .layer-pills{
+    display:flex;gap:7px;flex-wrap:wrap;width:100%;
+    padding-top:11px;margin-top:2px;
+    border-top:1px dashed var(--line);
+  }
+  .pill{
+    --pc:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--muted);background:none;cursor:pointer;
+    border:1px solid var(--line);border-radius:999px;
+    padding:5px 12px;
+    display:inline-flex;align-items:center;gap:7px;
+    transition:all .2s ease;
+  }
+  .pill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--pc);opacity:.85;}
+  .pill:hover{border-color:var(--pc);color:var(--bone-dim);}
+  .pill.on{
+    border-color:var(--pc);
+    color:var(--bone);
+    background:color-mix(in srgb, var(--pc) 14%, transparent);
+  }
+  .results-note{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+    letter-spacing:.04em;white-space:nowrap;
+  }
 
-  main{
-    max-width:760px;
-    margin:0 auto;
-    padding:8px 22px 40px;
-  }
+  /* ───────── Layers ───────── */
   .layer{
-    border-top:1px solid var(--panel-line);
-    padding:34px 0;
-    scroll-margin-top:70px;
+    --rail:var(--muted);
+    border-top:1px solid var(--line);
+    padding:clamp(36px,5.5vh,54px) 0;
+    scroll-margin-top:calc(var(--nav-h) + 96px);
   }
-  .layer:last-child{ border-bottom:1px solid var(--panel-line); }
-
+  .layer:last-of-type{border-bottom:1px solid var(--line);}
+  .layer.hidden{display:none;}
   .layer-head{
-    display:flex;
-    gap:16px;
-    align-items:baseline;
-    margin-bottom:14px;
+    display:flex;gap:18px;align-items:baseline;flex-wrap:wrap;
+    margin-bottom:10px;
   }
   .numeral{
-    font-family:'Fraunces', serif;
-    font-size:15px;
-    font-weight:500;
-    color:var(--rail);
-    letter-spacing:.04em;
-    padding-top:2px;
-    min-width:26px;
+    font-family:'Fraunces',serif;font-size:15px;font-weight:500;
+    color:var(--rail);letter-spacing:.04em;min-width:30px;
   }
   .layer-title{
-    font-family:'Fraunces', serif;
-    font-size:24px;
-    font-weight:600;
+    font-family:'Fraunces',serif;font-size:clamp(22px,2.6vw,28px);font-weight:600;
+    letter-spacing:-.012em;
   }
   .layer-tag{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    letter-spacing:.06em;
-    text-transform:uppercase;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;letter-spacing:.07em;text-transform:uppercase;
     color:var(--rail);
-    background:color-mix(in srgb, var(--rail) 14%, transparent);
-    border:1px solid var(--rail);
-    padding:2px 7px;
-    border-radius:20px;
-    margin-left:auto;
-    white-space:nowrap;
+    background:color-mix(in srgb, var(--rail) 13%, transparent);
+    border:1px solid color-mix(in srgb, var(--rail) 55%, transparent);
+    padding:3px 10px;border-radius:999px;
+    margin-left:auto;white-space:nowrap;
   }
   .layer-desc{
-    color:var(--muted);
-    font-size:13.5px;
-    line-height:1.55;
-    margin:6px 0 20px 42px;
-    max-width:58ch;
+    color:var(--muted);font-size:14.5px;line-height:1.62;
+    margin:4px 0 26px 48px;max-width:60ch;
   }
-
   .rail{
-    border-left:2px solid var(--rail);
-    padding-left:20px;
-    margin-left:9px;
+    border-left:2px solid color-mix(in srgb, var(--rail) 70%, transparent);
+    padding-left:clamp(16px,2.5vw,26px);
+    margin-left:11px;
   }
-
   .grid{
     display:grid;
-    grid-template-columns:repeat(2, 1fr);
-    gap:8px;
-  }
-  @media (max-width:520px){ .grid{ grid-template-columns:1fr; } }
-
-  .chip{
-    background:var(--panel);
-    border:1px solid var(--panel-line);
-    border-radius:8px;
-    padding:12px 14px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
     gap:10px;
-    cursor:pointer;
-    transition:border-color .15s ease, transform .15s ease, background .15s ease;
   }
-  .chip:hover{
-    border-color:var(--rail);
-    background:#161F2B;
-    transform:translateX(2px);
-  }
-  .chip:focus-visible{
-    outline:2px solid var(--brass);
-    outline-offset:2px;
-  }
-  .chip .name{
-    font-size:13.5px;
-    font-weight:500;
-  }
-  .chip .role{
-    font-size:11px;
-    color:var(--muted);
-    display:block;
-    margin-top:2px;
-    font-weight:400;
-  }
-  .chip .ticker-sym{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--rail);
-    white-space:nowrap;
-    flex-shrink:0;
-  }
-
-  /* ---------------- Ticker detail modal ---------------- */
-  .modal-overlay{
-    position:fixed; inset:0;
-    background:rgba(5,8,12,.72);
-    backdrop-filter:blur(2px);
-    display:flex; align-items:center; justify-content:center;
-    padding:20px;
-    z-index:100;
-  }
-  .modal-overlay[hidden]{ display:none; }
-  .modal-panel{
-    background:var(--panel);
-    border:1px solid var(--panel-line);
-    border-radius:16px;
-    width:100%; max-width:420px;
-    max-height:90vh;
-    overflow-y:auto;
-    padding:22px;
+  .card{
     position:relative;
-    box-shadow:0 20px 60px rgba(0,0,0,.5);
-  }
-  .modal-close{
-    position:absolute; top:14px; right:14px;
-    width:28px; height:28px;
-    border-radius:50%;
-    border:1px solid var(--panel-line);
-    background:transparent;
-    color:var(--muted);
-    font-size:16px;
-    line-height:1;
+    background:linear-gradient(160deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:15px 17px;
+    display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
     cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
+    transition:border-color .22s ease, transform .22s var(--ease), box-shadow .22s ease;
+    overflow:hidden;
   }
-  .modal-close:hover{ border-color:var(--rail); color:var(--bone); }
-  .modal-header{
-    display:flex; align-items:center; gap:14px;
-    margin-bottom:18px;
+  .card::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:3px;
+    background:var(--rail);opacity:0;
+    transition:opacity .22s ease;
   }
-  .modal-avatar{
-    width:48px; height:48px;
-    border-radius:50%;
-    background:var(--rail, var(--brass));
-    color:var(--ink);
-    font-family:'Fraunces', serif;
-    font-weight:700;
-    font-size:19px;
-    display:flex; align-items:center; justify-content:center;
-    flex-shrink:0;
+  .card:hover, .card:focus-visible{
+    border-color:color-mix(in srgb, var(--rail) 60%, transparent);
+    transform:translateY(-3px);
+    box-shadow:0 14px 34px -16px rgba(0,0,0,.65), 0 0 0 1px color-mix(in srgb, var(--rail) 18%, transparent);
+    outline:none;
   }
-  .modal-ticker{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    letter-spacing:.06em;
-    color:var(--rail, var(--brass));
-    text-transform:uppercase;
+  .card:hover::before, .card:focus-visible::before{opacity:1;}
+  .card.dim{opacity:.25;pointer-events:none;transform:none;}
+  .card .name{font-size:14.5px;font-weight:600;letter-spacing:-.005em;}
+  .card .role{font-size:12px;color:var(--muted);display:block;margin-top:3px;font-weight:400;line-height:1.5;}
+  .card .sym{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;font-weight:500;color:var(--rail);
+    white-space:nowrap;flex-shrink:0;
+    background:color-mix(in srgb, var(--rail) 10%, transparent);
+    border:1px solid color-mix(in srgb, var(--rail) 30%, transparent);
+    padding:3px 8px;border-radius:6px;
   }
-  .modal-name{
-    font-family:'Fraunces', serif;
-    font-size:19px;
-    font-weight:600;
-    margin-top:1px;
-  }
-  .modal-role{
-    font-size:11.5px;
+  .empty-state{
+    display:none;
+    text-align:center;padding:70px 20px;
     color:var(--muted);
-    margin-top:2px;
+    border:1px dashed var(--line-strong);border-radius:var(--radius);
   }
-  .modal-price-row{
-    display:flex; align-items:flex-end; justify-content:space-between;
-    gap:12px;
-    margin-bottom:18px;
+  .empty-state.show{display:block;}
+  .empty-state .big{font-family:'Fraunces',serif;font-size:22px;color:var(--bone-dim);margin-bottom:8px;}
+
+  /* ───────── Rail nav (desktop) ───────── */
+  .railnav{
+    position:fixed;right:22px;top:50%;transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:10px;z-index:50;
   }
-  .modal-price-label{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    color:var(--muted);
-    margin-bottom:4px;
+  .railnav a{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--line-strong);display:block;position:relative;
+    transition:transform .2s var(--ease), background .2s ease;
   }
-  .modal-price{
-    font-family:'Fraunces', serif;
-    font-size:32px;
-    font-weight:600;
+  .railnav a:hover,.railnav a.active{transform:scale(1.5);background:var(--pc,var(--brass));}
+  .railnav a::after{
+    content:attr(data-label);
+    position:absolute;right:18px;top:50%;transform:translateY(-50%);
+    font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--bone-dim);
+    background:rgba(13,18,25,.92);border:1px solid var(--line);
+    padding:4px 10px;border-radius:6px;
+    white-space:nowrap;opacity:0;pointer-events:none;
+    transition:opacity .15s ease;
   }
-  .modal-price.na{ color:var(--muted); font-size:22px; font-style:italic; }
-  .modal-sparkline{ width:130px; height:52px; flex-shrink:0; }
-  .modal-stats{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:8px;
-    margin-bottom:18px;
+  .railnav a:hover::after{opacity:1;}
+  @media (max-width:1240px){ .railnav{display:none;} }
+
+  /* ───────── Bubble map ───────── */
+  #bubbles{
+    background:
+      radial-gradient(ellipse 60% 55% at 50% 45%, rgba(201,160,92,.05), transparent 70%),
+      var(--ink-2);
+    border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);
   }
-  .modal-stat{
-    background:var(--ink);
-    border:1px solid var(--panel-line);
-    border-radius:10px;
-    padding:11px 12px;
+  #stage{
+    position:relative;width:100%;
+    height:clamp(480px,72vh,680px);
+    border:1px solid var(--line);
+    border-radius:calc(var(--radius) + 4px);
+    background:rgba(9,13,19,.5);
+    overflow:hidden;
   }
-  .modal-stat-label{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:9.5px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:var(--muted);
-    margin-bottom:6px;
-  }
-  .modal-stat-value{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:15px;
-    font-weight:600;
-  }
-  .modal-stat-pct{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    margin-top:3px;
-  }
-  .modal-stat-pct-big{
-    font-family:'IBM Plex Mono', monospace;
-    font-size:19px;
-    font-weight:600;
-  }
-  .modal-stat-sub{
-    font-size:10.5px;
-    color:var(--muted);
-    margin-top:3px;
-  }
-  .up{ color:var(--up); }
-  .down{ color:var(--down); }
-  .modal-range-labels{
-    display:flex; justify-content:space-between;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12px;
-    font-weight:600;
-    margin-bottom:8px;
-  }
-  .modal-range-labels > div:last-child{ text-align:right; }
-  .modal-range-current{ text-align:center; }
-  .modal-range-tag{
-    display:block;
-    font-size:9px;
-    letter-spacing:.06em;
-    font-weight:500;
-    color:var(--muted);
-    margin-bottom:2px;
-  }
-  .modal-range-tag.low{ color:var(--down); }
-  .modal-range-tag.high{ color:var(--up); }
-  .modal-range-track{
-    position:relative;
-    height:4px;
-    border-radius:2px;
-    background:linear-gradient(90deg, var(--down), var(--panel-line) 50%, var(--up));
-  }
-  .modal-range-dot{
-    position:absolute; top:50%; left:0;
-    width:12px; height:12px;
-    border-radius:50%;
-    background:var(--bone);
-    border:2px solid var(--ink);
-    transform:translate(-50%, -50%);
-  }
-  .modal-empty{
-    color:var(--muted);
-    font-size:13px;
-    line-height:1.6;
-    padding:8px 0 2px;
+  #stage svg{display:block;width:100%;height:100%;}
+  .hint{
+    position:absolute;bottom:14px;left:0;right:0;text-align:center;
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    color:var(--muted);pointer-events:none;letter-spacing:.04em;
   }
 
-  #l0{ --rail:var(--l0); }
-  #l1{ --rail:var(--l1); }
-  #l2{ --rail:var(--l2); }
-  #l3{ --rail:var(--l3); }
-  #l4{ --rail:var(--l4); }
-  #l5{ --rail:var(--l5); }
-  #l6{ --rail:var(--l6); }
-  #l7{ --rail:var(--l7); }
-  #l8{ --rail:var(--l8); }
-  #l9{ --rail:var(--l9); }
-  #ln{ --rail:var(--ln); }
+  /* ───────── Modal ───────── */
+  #scrim{
+    position:fixed;inset:0;z-index:110;
+    background:rgba(5,8,12,.62);
+    -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    opacity:0;pointer-events:none;transition:opacity .28s ease;
+  }
+  #scrim.open{opacity:1;pointer-events:auto;}
+  #modal{
+    position:fixed;z-index:120;
+    left:50%;top:50%;
+    width:min(480px, calc(100vw - 36px));
+    transform:translate(-50%,-50%) scale(.94) translateY(14px);
+    opacity:0;pointer-events:none;
+    background:linear-gradient(165deg,var(--panel-2),var(--panel) 70%);
+    border:1px solid var(--line-strong);
+    border-radius:18px;
+    padding:28px 28px 26px;
+    box-shadow:0 40px 90px -20px rgba(0,0,0,.8);
+    transition:opacity .28s ease, transform .32s var(--ease);
+  }
+  #modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1) translateY(0);}
+  #modal::before{
+    content:"";position:absolute;top:0;left:24px;right:24px;height:2px;border-radius:2px;
+    background:linear-gradient(90deg,transparent,var(--mc,var(--brass)),transparent);
+  }
+  #modal .m-layer{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--mc,var(--brass));
+    display:inline-flex;align-items:center;gap:8px;margin-bottom:14px;
+  }
+  #modal .m-layer::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mc,var(--brass));}
+  #modal .m-row{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;}
+  #modal .m-name{font-family:'Fraunces',serif;font-size:27px;font-weight:600;letter-spacing:-.015em;line-height:1.1;}
+  #modal .m-sym{
+    font-family:'IBM Plex Mono',monospace;font-size:12.5px;font-weight:500;
+    color:var(--mc,var(--brass));white-space:nowrap;
+    background:color-mix(in srgb, var(--mc,var(--brass)) 12%, transparent);
+    border:1px solid color-mix(in srgb, var(--mc,var(--brass)) 35%, transparent);
+    padding:5px 11px;border-radius:8px;margin-top:3px;
+  }
+  #modal .m-role{margin-top:14px;font-size:14.5px;line-height:1.65;color:var(--bone-dim);}
+  #modal .m-pos{
+    margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);
+    letter-spacing:.04em;line-height:1.8;
+  }
+  #modal .m-pos b{color:var(--bone-dim);font-weight:500;}
+  #modal .close{
+    position:absolute;top:14px;right:14px;
+    width:32px;height:32px;border-radius:9px;
+    background:rgba(255,255,255,.04);border:1px solid var(--line);
+    color:var(--muted);font-size:15px;cursor:pointer;line-height:1;
+    transition:color .2s ease, border-color .2s ease;
+  }
+  #modal .close:hover{color:var(--bone);border-color:var(--line-strong);}
 
+  /* ───────── Modal: price panel ───────── */
+  .m-price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);}
+  .m-price-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+  .m-price{font-family:'Fraunces',serif;font-size:30px;font-weight:600;color:var(--bone);}
+  .m-price.na{color:var(--muted);font-size:20px;font-style:italic;}
+  .m-sparkline{width:130px;height:50px;flex-shrink:0;}
+  .m-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;}
+  .m-stat{background:var(--ink-2);border:1px solid var(--line);border-radius:10px;padding:11px 12px;}
+  .m-stat-label{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+  .m-stat-value{font-family:'IBM Plex Mono',monospace;font-size:14.5px;font-weight:600;color:var(--bone);}
+  .m-stat-pct{font-family:'IBM Plex Mono',monospace;font-size:11px;margin-top:3px;}
+  .m-stat-pct-big{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;}
+  .m-stat-sub{font-size:10px;color:var(--muted);margin-top:3px;}
+  .up{color:var(--up);}
+  .down{color:var(--down);}
+  .m-range{margin-top:14px;}
+  .m-range-labels{display:flex;justify-content:space-between;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;margin-bottom:8px;color:var(--bone-dim);}
+  .m-range-labels > div:last-child{text-align:right;}
+  .m-range-current{text-align:center;}
+  .m-range-tag{display:block;font-size:9px;letter-spacing:.06em;font-weight:500;color:var(--muted);margin-bottom:2px;}
+  .m-range-tag.low{color:var(--down);}
+  .m-range-tag.high{color:var(--up);}
+  .m-range-track{position:relative;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--down),var(--line-strong) 50%,var(--up));}
+  .m-range-dot{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--bone);border:2px solid var(--panel-2);transform:translate(-50%,-50%);}
+  .m-empty{margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);color:var(--muted);font-size:12.5px;line-height:1.6;}
+
+  /* ───────── Footer ───────── */
   footer{
-    max-width:760px;
-    margin:0 auto;
-    padding:26px 22px 60px;
-    font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--muted);
-    line-height:1.7;
-    border-top:1px dashed var(--panel-line);
+    border-top:1px solid var(--line);
+    padding:clamp(44px,7vh,72px) 0 56px;
+    background:var(--ink-2);
   }
-  footer strong{ color:var(--bone); }
+  .foot-grid{display:flex;flex-wrap:wrap;gap:40px;justify-content:space-between;align-items:flex-start;}
+  .foot-brand{max-width:400px;}
+  .foot-note{
+    margin-top:16px;
+    font-size:13px;line-height:1.7;color:var(--muted);
+  }
+  .foot-note strong{color:var(--bone-dim);font-weight:600;}
+  .foot-links{display:flex;gap:44px;flex-wrap:wrap;}
+  .foot-col .h{
+    font-family:'IBM Plex Mono',monospace;font-size:10.5px;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--bone-dim);
+    margin-bottom:14px;
+  }
+  .foot-col a{
+    display:block;font-size:13.5px;color:var(--muted);text-decoration:none;
+    padding:4px 0;transition:color .2s ease;
+  }
+  .foot-col a:hover{color:var(--brass);}
+  .foot-base{
+    margin-top:48px;padding-top:22px;border-top:1px solid var(--line);
+    display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.03em;
+  }
+
+  /* ───────── Reveal animations ───────── */
+  .reveal{opacity:0;transform:translateY(26px);transition:opacity .7s ease, transform .8s var(--ease);}
+  .reveal.in{opacity:1;transform:none;}
+  .reveal-d1{transition-delay:.08s;}
+  .reveal-d2{transition-delay:.16s;}
+  .reveal-d3{transition-delay:.24s;}
 
   @media (prefers-reduced-motion: reduce){
-    .ticker{ animation:none; }
-    html{ scroll-behavior:auto; }
+    *{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;}
+    html{scroll-behavior:auto;}
+    .reveal{opacity:1;transform:none;}
   }
 </style>
 </head>
 <body>
 
-  <div class="ticker-wrap">
-    <div class="ticker" id="ticker"></div>
+<!-- ───────── Nav ───────── -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="brand" href="#top">
+      <span class="brand-mark">AI</span>
+      <span class="brand-name">The AI <em>Stack</em></span>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="#stack">The Stack</a>
+      <a href="#bubbles">Bubble Map</a>
+      <a href="#about">About</a>
+    </div>
+    <a class="nav-cta" href="#stack">Explore →</a>
   </div>
+</nav>
 
-  <nav class="railnav" id="railnav">
-    <a href="#l0" data-label="Design Software"></a>
-    <a href="#l1" data-label="Foundry & Equipment"></a>
-    <a href="#l2" data-label="Silicon"></a>
-    <a href="#l3" data-label="Networking & Optics"></a>
-    <a href="#l4" data-label="Memory"></a>
-    <a href="#l5" data-label="Models & Software"></a>
-    <a href="#l6" data-label="Cloud Infrastructure"></a>
-    <a href="#l7" data-label="Security"></a>
-    <a href="#l8" data-label="Power & Cooling"></a>
-    <a href="#l9" data-label="Consumer & Devices"></a>
-    <a href="#ln" data-label="Notable Stocks"></a>
-  </nav>
-
-  <header class="hero">
-    <div class="eyebrow">Market Map · Reference</div>
-    <h1>The AI <em>Stack</em></h1>
-    <p class="sub">Ten layers of the AI economy, ordered upstream to downstream, plus a catch-all for names that matter but don't cleanly fit one layer. Tap any ticker for its price, 52-week range, and YTD performance.</p>
-    <div id="lastRefresh" class="last-refresh">Last refreshed: —</div>
-    <div class="flow">
+<!-- ───────── Hero ───────── -->
+<header class="hero" id="top">
+  <div class="hero-bg"></div>
+  <div class="container hero-inner">
+    <div class="eyebrow reveal">Market Map · 2026 Field Guide</div>
+    <h1 class="reveal reveal-d1">The AI <em>Stack</em>,<br>mapped end to end.</h1>
+    <p class="hero-sub reveal reveal-d2">Ten layers of the AI economy, ordered upstream to downstream, plus a catch-all for names that matter but don't cleanly fit one layer. Tap any company for its price, 52-week range, and YTD performance — updated weekly.</p>
+    <div class="hero-actions reveal reveal-d3">
+      <a class="btn btn-primary" href="#stack">Explore the Stack <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="#bubbles">Open the Bubble Map <span class="arrow">→</span></a>
+      <a class="btn btn-ghost" href="ai-stack-bubbles.html">Full-Screen Bubble Map <span class="arrow">↗</span></a>
+    </div>
+    <div class="hero-stats reveal reveal-d3">
+      <div class="stat"><div class="num" data-count="11">0</div><div class="lbl">Layers</div></div>
+      <div class="stat"><div class="num" data-count="91">0</div><div class="lbl">Companies</div></div>
+      <div class="stat"><div class="num" data-count="81">0</div><div class="lbl">Tracked Tickers</div></div>
+      <div class="stat"><div class="num"><span>∞</span></div><div class="lbl">Capex</div></div>
+    </div>
+    <div class="last-refresh reveal reveal-d3" id="lastRefresh">Last refreshed: —</div>
+    <div class="flow reveal reveal-d3">
       <span>Upstream</span>
       <span class="line"></span>
       <span>Downstream</span>
     </div>
-  </header>
+  </div>
+</header>
 
-  <main>
+<!-- ───────── Ticker ───────── -->
+<div class="ticker-wrap" aria-hidden="true">
+  <div class="ticker" id="ticker"></div>
+</div>
 
-    <section class="layer" id="l0">
-      <div class="layer-head">
-        <span class="numeral">I</span>
-        <span class="layer-title">Design Software</span>
-        <span class="layer-tag">EDA</span>
-      </div>
-      <p class="layer-desc">Before a wafer is ever cut, a chip is designed in software. These two firms hold a near-duopoly on the electronic design automation tools every chipmaker relies on.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="CDNS" tabindex="0" role="button"><div><span class="name">Cadence</span><span class="role">EDA, AI-driven chip design</span></div><span class="ticker-sym">CDNS</span></div>
-          <div class="chip" data-ticker="SNPS" tabindex="0" role="button"><div><span class="name">Synopsys</span><span class="role">EDA, silicon IP</span></div><span class="ticker-sym">SNPS</span></div>
-        </div>
-      </div>
-    </section>
+<!-- ───────── Rail nav ───────── -->
+<nav class="railnav" id="railnav" aria-label="Layer navigation"></nav>
 
-    <section class="layer" id="l1">
-      <div class="layer-head">
-        <span class="numeral">II</span>
-        <span class="layer-title">Foundry &amp; Equipment</span>
-      </div>
-      <p class="layer-desc">The physical toolmakers. Without this layer, no advanced chip gets made — lithography, etching, and deposition tools are the real bottleneck of the entire stack.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="TSM" tabindex="0" role="button"><div><span class="name">TSMC</span><span class="role">Contract chip manufacturing</span></div><span class="ticker-sym">TSM</span></div>
-          <div class="chip" data-ticker="ASML" tabindex="0" role="button"><div><span class="name">ASML</span><span class="role">EUV lithography monopoly</span></div><span class="ticker-sym">ASML</span></div>
-          <div class="chip" data-ticker="AMAT" tabindex="0" role="button"><div><span class="name">Applied Materials</span><span class="role">Wafer fab equipment</span></div><span class="ticker-sym">AMAT</span></div>
-          <div class="chip" data-ticker="LRCX" tabindex="0" role="button"><div><span class="name">Lam Research</span><span class="role">Etch & deposition</span></div><span class="ticker-sym">LRCX</span></div>
-          <div class="chip" data-ticker="KLAC" tabindex="0" role="button"><div><span class="name">KLA Corp</span><span class="role">Process control & inspection</span></div><span class="ticker-sym">KLAC</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l2">
-      <div class="layer-head">
-        <span class="numeral">III</span>
-        <span class="layer-title">Silicon</span>
-      </div>
-      <p class="layer-desc">The chip designers. These companies design the GPUs, accelerators, and CPU architectures that actually run AI workloads, then hand manufacturing to Layer II.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="NVDA" tabindex="0" role="button"><div><span class="name">Nvidia</span><span class="role">AI accelerator leader</span></div><span class="ticker-sym">NVDA</span></div>
-          <div class="chip" data-ticker="AVGO" tabindex="0" role="button"><div><span class="name">Broadcom</span><span class="role">Custom AI silicon (ASICs)</span></div><span class="ticker-sym">AVGO</span></div>
-          <div class="chip" data-ticker="AMD" tabindex="0" role="button"><div><span class="name">AMD</span><span class="role">GPU & CPU challenger</span></div><span class="ticker-sym">AMD</span></div>
-          <div class="chip" data-ticker="INTC" tabindex="0" role="button"><div><span class="name">Intel</span><span class="role">CPU incumbent, foundry bet</span></div><span class="ticker-sym">INTC</span></div>
-          <div class="chip" data-ticker="QCOM" tabindex="0" role="button"><div><span class="name">Qualcomm</span><span class="role">Edge & mobile AI chips</span></div><span class="ticker-sym">QCOM</span></div>
-          <div class="chip" data-ticker="ARM" tabindex="0" role="button"><div><span class="name">Arm Holdings</span><span class="role">CPU architecture licensor</span></div><span class="ticker-sym">ARM</span></div>
-          <div class="chip" data-ticker="CBRS" tabindex="0" role="button"><div><span class="name">Cerebras</span><span class="role">Wafer-scale AI inference chips</span></div><span class="ticker-sym">CBRS</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l3">
-      <div class="layer-head">
-        <span class="numeral">IV</span>
-        <span class="layer-title">Networking &amp; Optics</span>
-      </div>
-      <p class="layer-desc">The connective tissue. Chips are useless if data can't move between them fast enough. Photonics, optical transceivers, and switches carry traffic between GPUs, racks, and data centers.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="LITE" tabindex="0" role="button"><div><span class="name">Lumentum</span><span class="role">Photonic integrated circuits</span></div><span class="ticker-sym">LITE</span></div>
-          <div class="chip" data-ticker="COHR" tabindex="0" role="button"><div><span class="name">Coherent</span><span class="role">Photonics for AI data centers</span></div><span class="ticker-sym">COHR</span></div>
-          <div class="chip" data-ticker="AAOI" tabindex="0" role="button"><div><span class="name">Applied Optoelectronics</span><span class="role">Optical transceivers</span></div><span class="ticker-sym">AAOI</span></div>
-          <div class="chip" data-ticker="VIAV" tabindex="0" role="button"><div><span class="name">Viavi Solutions</span><span class="role">Network testing & assurance</span></div><span class="ticker-sym">VIAV</span></div>
-          <div class="chip" data-ticker="MRVL" tabindex="0" role="button"><div><span class="name">Marvell</span><span class="role">Custom silicon for data infra</span></div><span class="ticker-sym">MRVL</span></div>
-          <div class="chip" data-ticker="CRDO" tabindex="0" role="button"><div><span class="name">Credo</span><span class="role">High-speed connectivity for AI</span></div><span class="ticker-sym">CRDO</span></div>
-          <div class="chip" data-ticker="ALAB" tabindex="0" role="button"><div><span class="name">Astera Labs</span><span class="role">Connectivity for AI clusters</span></div><span class="ticker-sym">ALAB</span></div>
-          <div class="chip" data-ticker="ANET" tabindex="0" role="button"><div><span class="name">Arista Networks</span><span class="role">Cloud networking switches</span></div><span class="ticker-sym">ANET</span></div>
-          <div class="chip" data-ticker="CSCO" tabindex="0" role="button"><div><span class="name">Cisco</span><span class="role">Enterprise networking incumbent</span></div><span class="ticker-sym">CSCO</span></div>
-          <div class="chip" data-ticker="CIEN" tabindex="0" role="button"><div><span class="name">Ciena</span><span class="role">Optical networking systems</span></div><span class="ticker-sym">CIEN</span></div>
-          <div class="chip" data-ticker="APH" tabindex="0" role="button"><div><span class="name">Amphenol</span><span class="role">High-speed interconnects</span></div><span class="ticker-sym">APH</span></div>
-          <div class="chip" data-ticker="SMTC" tabindex="0" role="button"><div><span class="name">Semtech</span><span class="role">Optical modules & signal ICs</span></div><span class="ticker-sym">SMTC</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l4">
-      <div class="layer-head">
-        <span class="numeral">V</span>
-        <span class="layer-title">Memory</span>
-      </div>
-      <p class="layer-desc">The bottleneck of the moment. DRAM and NAND feed every GPU cluster — HBM demand has flipped memory from a boring commodity business into one of the tightest markets in tech.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="MU" tabindex="0" role="button"><div><span class="name">Micron</span><span class="role">US DRAM & HBM</span></div><span class="ticker-sym">MU</span></div>
-          <div class="chip" data-ticker="005930.KS" data-market="non-us" tabindex="0" role="button"><div><span class="name">Samsung</span><span class="role">DRAM & HBM, largest scale</span></div><span class="ticker-sym">005930.KS</span></div>
-          <div class="chip" data-ticker="000660.KS" data-market="non-us" tabindex="0" role="button"><div><span class="name">SK Hynix</span><span class="role">HBM share leader</span></div><span class="ticker-sym">000660.KS</span></div>
-          <div class="chip" data-ticker="SNDK" tabindex="0" role="button"><div><span class="name">SanDisk</span><span class="role">NAND flash & storage</span></div><span class="ticker-sym">SNDK</span></div>
-          <div class="chip" data-ticker="WDC" tabindex="0" role="button"><div><span class="name">Western Digital</span><span class="role">Storage & NAND</span></div><span class="ticker-sym">WDC</span></div>
-          <div class="chip" data-ticker="285A.T" data-market="non-us" tabindex="0" role="button"><div><span class="name">Kioxia</span><span class="role">NAND, Toshiba spinoff</span></div><span class="ticker-sym">285A.T</span></div>
-          <div class="chip" data-ticker="STX" tabindex="0" role="button"><div><span class="name">Seagate</span><span class="role">Hard drives & storage</span></div><span class="ticker-sym">STX</span></div>
-          <div class="chip" data-ticker="P" tabindex="0" role="button"><div><span class="name">Everpure</span><span class="role">Flash storage for AI data</span></div><span class="ticker-sym">P</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l5">
-      <div class="layer-head">
-        <span class="numeral">VI</span>
-        <span class="layer-title">Models &amp; Software</span>
-      </div>
-      <p class="layer-desc">Where compute becomes a product. These companies build or deploy the AI models themselves, and largely decide how much upstream demand gets pulled through the stack.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="MSFT" tabindex="0" role="button"><div><span class="name">Microsoft</span><span class="role">Azure AI, OpenAI partner</span></div><span class="ticker-sym">MSFT</span></div>
-          <div class="chip" data-ticker="GOOGL" tabindex="0" role="button"><div><span class="name">Alphabet</span><span class="role">Gemini, TPUs, DeepMind</span></div><span class="ticker-sym">GOOGL</span></div>
-          <div class="chip" data-ticker="META" tabindex="0" role="button"><div><span class="name">Meta</span><span class="role">Llama, largest AI capex</span></div><span class="ticker-sym">META</span></div>
-          <div class="chip" data-ticker="PLTR" tabindex="0" role="button"><div><span class="name">Palantir</span><span class="role">Enterprise AI deployment</span></div><span class="ticker-sym">PLTR</span></div>
-          <div class="chip" data-ticker="Private" data-market="private" tabindex="0" role="button"><div><span class="name">Anthropic</span><span class="role">Claude, safety-focused frontier lab</span></div><span class="ticker-sym">Private</span></div>
-          <div class="chip" data-ticker="Private" data-market="private" tabindex="0" role="button"><div><span class="name">OpenAI</span><span class="role">ChatGPT, GPT model family</span></div><span class="ticker-sym">Private</span></div>
-          <div class="chip" data-ticker="Private" data-market="private" tabindex="0" role="button"><div><span class="name">xAI</span><span class="role">Grok model family</span></div><span class="ticker-sym">Private</span></div>
-          <div class="chip" data-ticker="Private" data-market="private" tabindex="0" role="button"><div><span class="name">Mistral AI</span><span class="role">Open-weight European frontier lab</span></div><span class="ticker-sym">Private</span></div>
-          <div class="chip" data-ticker="Private" data-market="private" tabindex="0" role="button"><div><span class="name">Perplexity</span><span class="role">AI-powered answer engine</span></div><span class="ticker-sym">Private</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l6">
-      <div class="layer-head">
-        <span class="numeral">VII</span>
-        <span class="layer-title">Cloud Infrastructure</span>
-      </div>
-      <p class="layer-desc">The rented compute layer. Rather than build data centers themselves, most AI developers rent GPU capacity from hyperscalers, pure-play "neoclouds," former crypto miners pivoting to AI compute, or colocation landlords.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="AMZN" tabindex="0" role="button"><div><span class="name">Amazon (AWS)</span><span class="role">Largest cloud provider</span></div><span class="ticker-sym">AMZN</span></div>
-          <div class="chip" data-ticker="ORCL" tabindex="0" role="button"><div><span class="name">Oracle</span><span class="role">OCI, aggressive AI capex</span></div><span class="ticker-sym">ORCL</span></div>
-          <div class="chip" data-ticker="CRWV" tabindex="0" role="button"><div><span class="name">CoreWeave</span><span class="role">Pure-play GPU cloud</span></div><span class="ticker-sym">CRWV</span></div>
-          <div class="chip" data-ticker="NBIS" tabindex="0" role="button"><div><span class="name">Nebius</span><span class="role">Ex-Yandex AI cloud</span></div><span class="ticker-sym">NBIS</span></div>
-          <div class="chip" data-ticker="APLD" tabindex="0" role="button"><div><span class="name">Applied Digital</span><span class="role">AI data center leasing</span></div><span class="ticker-sym">APLD</span></div>
-          <div class="chip" data-ticker="IREN" tabindex="0" role="button"><div><span class="name">IREN</span><span class="role">Ex-crypto miner, now AI compute</span></div><span class="ticker-sym">IREN</span></div>
-          <div class="chip" data-ticker="WULF" tabindex="0" role="button"><div><span class="name">TeraWulf</span><span class="role">Ex-crypto miner, now AI compute</span></div><span class="ticker-sym">WULF</span></div>
-          <div class="chip" data-ticker="CIFR" tabindex="0" role="button"><div><span class="name">Cipher Mining</span><span class="role">Ex-crypto miner, now AI compute</span></div><span class="ticker-sym">CIFR</span></div>
-          <div class="chip" data-ticker="HUT" tabindex="0" role="button"><div><span class="name">Hut 8</span><span class="role">Ex-crypto miner, now AI compute</span></div><span class="ticker-sym">HUT</span></div>
-          <div class="chip" data-ticker="GLXY" tabindex="0" role="button"><div><span class="name">Galaxy Digital</span><span class="role">Digital assets pivoting to AI infra</span></div><span class="ticker-sym">GLXY</span></div>
-          <div class="chip" data-ticker="EQIX" tabindex="0" role="button"><div><span class="name">Equinix</span><span class="role">Data center colocation REIT</span></div><span class="ticker-sym">EQIX</span></div>
-          <div class="chip" data-ticker="DLR" tabindex="0" role="button"><div><span class="name">Digital Realty</span><span class="role">Data center colocation REIT</span></div><span class="ticker-sym">DLR</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l7">
-      <div class="layer-head">
-        <span class="numeral">VIII</span>
-        <span class="layer-title">Security</span>
-      </div>
-      <p class="layer-desc">Someone has to protect the cloud workloads above and, increasingly, the models themselves — a newer front now that AI can find software vulnerabilities near-autonomously.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="CRWD" tabindex="0" role="button"><div><span class="name">CrowdStrike</span><span class="role">Endpoint & AI-driven threat detection</span></div><span class="ticker-sym">CRWD</span></div>
-          <div class="chip" data-ticker="PANW" tabindex="0" role="button"><div><span class="name">Palo Alto Networks</span><span class="role">Network & cloud security platform</span></div><span class="ticker-sym">PANW</span></div>
-          <div class="chip" data-ticker="NET" tabindex="0" role="button"><div><span class="name">Cloudflare</span><span class="role">Network layer AI agents run through</span></div><span class="ticker-sym">NET</span></div>
-          <div class="chip" data-ticker="ZS" tabindex="0" role="button"><div><span class="name">Zscaler</span><span class="role">Zero-trust cloud security</span></div><span class="ticker-sym">ZS</span></div>
-          <div class="chip" data-ticker="FTNT" tabindex="0" role="button"><div><span class="name">Fortinet</span><span class="role">Network security, organic cloud growth</span></div><span class="ticker-sym">FTNT</span></div>
-          <div class="chip" data-ticker="DDOG" tabindex="0" role="button"><div><span class="name">Datadog</span><span class="role">Cloud monitoring & observability</span></div><span class="ticker-sym">DDOG</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l8">
-      <div class="layer-head">
-        <span class="numeral">IX</span>
-        <span class="layer-title">Power &amp; Cooling</span>
-      </div>
-      <p class="layer-desc">The physical bottleneck behind the bottleneck. AI racks draw so much power and heat that generation, grid capacity, and thermal management have become their own investable category.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="VRT" tabindex="0" role="button"><div><span class="name">Vertiv</span><span class="role">Data center power & liquid cooling</span></div><span class="ticker-sym">VRT</span></div>
-          <div class="chip" data-ticker="ETN" tabindex="0" role="button"><div><span class="name">Eaton</span><span class="role">Grid-to-chip power, record backlog</span></div><span class="ticker-sym">ETN</span></div>
-          <div class="chip" data-ticker="GEV" tabindex="0" role="button"><div><span class="name">GE Vernova</span><span class="role">Turbines & grid electrification</span></div><span class="ticker-sym">GEV</span></div>
-          <div class="chip" data-ticker="CEG" tabindex="0" role="button"><div><span class="name">Constellation Energy</span><span class="role">Largest US nuclear fleet</span></div><span class="ticker-sym">CEG</span></div>
-          <div class="chip" data-ticker="VST" tabindex="0" role="button"><div><span class="name">Vistra</span><span class="role">Independent power, AWS/Meta PPAs</span></div><span class="ticker-sym">VST</span></div>
-          <div class="chip" data-ticker="PWR" tabindex="0" role="button"><div><span class="name">Quanta Services</span><span class="role">Grid construction, record backlog</span></div><span class="ticker-sym">PWR</span></div>
-          <div class="chip" data-ticker="NVT" tabindex="0" role="button"><div><span class="name">nVent Electric</span><span class="role">Liquid cooling distribution</span></div><span class="ticker-sym">NVT</span></div>
-          <div class="chip" data-ticker="NEE" tabindex="0" role="button"><div><span class="name">NextEra Energy</span><span class="role">Largest US renewable power producer</span></div><span class="ticker-sym">NEE</span></div>
-          <div class="chip" data-ticker="TLN" tabindex="0" role="button"><div><span class="name">Talen Energy</span><span class="role">Nuclear power, direct hyperscaler PPAs</span></div><span class="ticker-sym">TLN</span></div>
-          <div class="chip" data-ticker="OKLO" tabindex="0" role="button"><div><span class="name">Oklo</span><span class="role">Small modular reactor developer</span></div><span class="ticker-sym">OKLO</span></div>
-          <div class="chip" data-ticker="BE" tabindex="0" role="button"><div><span class="name">Bloom Energy</span><span class="role">On-site fuel cell power</span></div><span class="ticker-sym">BE</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="l9">
-      <div class="layer-head">
-        <span class="numeral">X</span>
-        <span class="layer-title">Consumer &amp; Devices</span>
-      </div>
-      <p class="layer-desc">Where the stack meets your hands. Consumer hardware absorbs the AI buildout's cost pressure directly — memory shortages upstream are already showing up as price hikes here.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="AAPL" tabindex="0" role="button"><div><span class="name">Apple</span><span class="role">iPhone, Mac, on-device AI</span></div><span class="ticker-sym">AAPL</span></div>
-          <div class="chip" data-ticker="DELL" tabindex="0" role="button"><div><span class="name">Dell Technologies</span><span class="role">AI PCs & servers</span></div><span class="ticker-sym">DELL</span></div>
-          <div class="chip" data-ticker="HPQ" tabindex="0" role="button"><div><span class="name">HP Inc.</span><span class="role">Consumer PCs</span></div><span class="ticker-sym">HPQ</span></div>
-          <div class="chip" data-ticker="005930.KS" data-market="non-us" tabindex="0" role="button"><div><span class="name">Samsung Electronics</span><span class="role">Phones + own memory</span></div><span class="ticker-sym">005930.KS</span></div>
-        </div>
-      </div>
-    </section>
-
-    <section class="layer" id="ln">
-      <div class="layer-head">
-        <span class="numeral">＋</span>
-        <span class="layer-title">Notable Stocks</span>
-        <span class="layer-tag">CATCH-ALL</span>
-      </div>
-      <p class="layer-desc">Real names worth tracking that don't cleanly sit in one layer above — diversified enterprise software giants, the contract manufacturers who physically assemble servers, the utilities that supply the water AI data centers need for cooling, and the rare earth miners behind the magnets in motors, robotics, and defense electronics.</p>
-      <div class="rail">
-        <div class="grid">
-          <div class="chip" data-ticker="ADBE" tabindex="0" role="button"><div><span class="name">Adobe</span><span class="role">AI-powered creative software</span></div><span class="ticker-sym">ADBE</span></div>
-          <div class="chip" data-ticker="CRM" tabindex="0" role="button"><div><span class="name">Salesforce</span><span class="role">Agentforce, AI-driven CRM</span></div><span class="ticker-sym">CRM</span></div>
-          <div class="chip" data-ticker="SAP" tabindex="0" role="button"><div><span class="name">SAP</span><span class="role">Enterprise resource planning + AI</span></div><span class="ticker-sym">SAP</span></div>
-          <div class="chip" data-ticker="IBM" tabindex="0" role="button"><div><span class="name">IBM</span><span class="role">watsonx, hybrid cloud & AI consulting</span></div><span class="ticker-sym">IBM</span></div>
-          <div class="chip" data-ticker="CLS" tabindex="0" role="button"><div><span class="name">Celestica</span><span class="role">Contract manufacturer, AI servers</span></div><span class="ticker-sym">CLS</span></div>
-          <div class="chip" data-ticker="FLEX" tabindex="0" role="button"><div><span class="name">Flex</span><span class="role">Contract manufacturer, data center gear</span></div><span class="ticker-sym">FLEX</span></div>
-          <div class="chip" data-ticker="FN" tabindex="0" role="button"><div><span class="name">Fabrinet</span><span class="role">Contract manufacturer, optical parts</span></div><span class="ticker-sym">FN</span></div>
-          <div class="chip" data-ticker="SANM" tabindex="0" role="button"><div><span class="name">Sanmina</span><span class="role">Contract manufacturer, electronics</span></div><span class="ticker-sym">SANM</span></div>
-          <div class="chip" data-ticker="AWK" tabindex="0" role="button"><div><span class="name">American Water</span><span class="role">Water utility, data center cooling supply</span></div><span class="ticker-sym">AWK</span></div>
-          <div class="chip" data-ticker="WTRG" tabindex="0" role="button"><div><span class="name">Essential Utilities</span><span class="role">Water & wastewater utility</span></div><span class="ticker-sym">WTRG</span></div>
-          <div class="chip" data-ticker="BMI" tabindex="0" role="button"><div><span class="name">Badger Meter</span><span class="role">Smart water measurement</span></div><span class="ticker-sym">BMI</span></div>
-          <div class="chip" data-ticker="LEU" tabindex="0" role="button"><div><span class="name">Centrus Energy</span><span class="role">Uranium enrichment for nuclear power</span></div><span class="ticker-sym">LEU</span></div>
-          <div class="chip" data-ticker="MP" tabindex="0" role="button"><div><span class="name">MP Materials</span><span class="role">US rare earth mining & magnets</span></div><span class="ticker-sym">MP</span></div>
-          <div class="chip" data-ticker="NEO" data-market="non-us" tabindex="0" role="button"><div><span class="name">Neo Performance Materials</span><span class="role">Rare earth processing & magnetics</span></div><span class="ticker-sym">NEO</span></div>
-          <div class="chip" data-ticker="USAR" tabindex="0" role="button"><div><span class="name">USA Rare Earth</span><span class="role">Mine-to-magnet rare earth supply chain</span></div><span class="ticker-sym">USAR</span></div>
-        </div>
-      </div>
-    </section>
-
-  </main>
-
-  <footer>
-    <strong>Not investment advice.</strong> This is an illustrative map of how companies relate within the AI supply chain — a reference for orientation, not a price feed, index, or recommendation. Company placement is simplified; many span more than one layer.
-
-    <div class="block">
-      <strong>US market only:</strong> tickers on foreign exchanges — Neo Performance Materials (TSX), Samsung and SK Hynix (KRX), Kioxia (TSE) — and private companies (Anthropic, OpenAI, xAI, Mistral AI, Perplexity) show no market data. Neither data source covers non-US exchanges, so these are permanently out of scope for the automated feed rather than pending.
+<!-- ───────── Stack ───────── -->
+<section class="block" id="stack">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">The Stack</div>
+      <h2>Eleven sections. <em>One supply chain.</em></h2>
+      <p class="section-sub">From the software that designs a chip to the device in your hand — every layer pulls demand through the one above it.</p>
     </div>
-    <div class="block">
-      <strong>Prices, updated weekly:</strong> tap (or click) any ticker to open its detail card — current price with a 60-day sparkline, 52-week high/low, YTD performance, and the last-20-days change. The "Last refreshed" line at the top of the page reflects the date the data pipeline last pulled prices — whether from the Friday schedule or a manual run, it always resolves to the last completed US market close, never an in-progress session.
+
+    <div class="toolbar reveal" id="toolbar">
+      <div class="search" id="searchWrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" id="searchInput" placeholder="Search companies or tickers…" autocomplete="off" spellcheck="false">
+        <button class="clear" id="searchClear" aria-label="Clear search">×</button>
+      </div>
+      <div class="seg" id="visSeg">
+        <button data-vis="all" class="on">All</button>
+        <button data-vis="public">Public</button>
+        <button data-vis="private">Private</button>
+      </div>
+      <span class="results-note" id="resultsNote"></span>
+      <div class="layer-pills" id="layerPills"></div>
     </div>
-  </footer>
 
-  <div class="modal-overlay" id="tickerModal" hidden>
-    <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="modalName">
-      <button class="modal-close" id="modalCloseBtn" aria-label="Close">&times;</button>
-      <div class="modal-header">
-        <div class="modal-avatar" id="modalAvatar"></div>
-        <div>
-          <div class="modal-ticker" id="modalTicker"></div>
-          <div class="modal-name" id="modalName"></div>
-          <div class="modal-role" id="modalRole"></div>
-        </div>
-      </div>
-
-      <div id="modalBody">
-        <div class="modal-price-row">
-          <div>
-            <div class="modal-price-label">Price</div>
-            <div class="modal-price" id="modalPrice"></div>
-          </div>
-          <svg class="modal-sparkline" id="modalSparkline" viewBox="0 0 130 52" preserveAspectRatio="none"></svg>
-        </div>
-
-        <div class="modal-stats">
-          <div class="modal-stat">
-            <div class="modal-stat-label">52 Week High</div>
-            <div class="modal-stat-value" id="modalHigh"></div>
-            <div class="modal-stat-pct" id="modalHighPct"></div>
-          </div>
-          <div class="modal-stat">
-            <div class="modal-stat-label">52 Week Low</div>
-            <div class="modal-stat-value" id="modalLow"></div>
-            <div class="modal-stat-pct" id="modalLowPct"></div>
-          </div>
-          <div class="modal-stat">
-            <div class="modal-stat-label">YTD Performance</div>
-            <div class="modal-stat-pct-big" id="modalYtd"></div>
-            <div class="modal-stat-sub">Year to date</div>
-          </div>
-          <div class="modal-stat">
-            <div class="modal-stat-label">Last 20 Days</div>
-            <div class="modal-stat-pct-big" id="modal20d"></div>
-            <div class="modal-stat-sub">Price change</div>
-          </div>
-        </div>
-
-        <div id="modalRangeWrap">
-          <div class="modal-range-labels">
-            <div>
-              <span class="modal-range-tag low">52W Low</span>
-              <span id="modalRangeLow"></span>
-            </div>
-            <div class="modal-range-current">
-              <span class="modal-range-tag">Current</span>
-              <span id="modalRangeCurrent"></span>
-            </div>
-            <div>
-              <span class="modal-range-tag high">52W High</span>
-              <span id="modalRangeHigh"></span>
-            </div>
-          </div>
-          <div class="modal-range-track">
-            <div class="modal-range-dot" id="modalRangeDot"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="modal-empty" id="modalEmpty" hidden></div>
+    <main id="layers"></main>
+    <div class="empty-state" id="emptyState">
+      <div class="big">No matches</div>
+      Try a different name or ticker, or clear the filters.
     </div>
   </div>
+</section>
+
+<!-- ───────── Bubble map ───────── -->
+<section class="block" id="bubbles">
+  <div class="container">
+    <div class="section-head reveal">
+      <div class="kicker">Interactive</div>
+      <h2>The stack as a <em>constellation.</em></h2>
+      <p class="section-sub">Every layer orbits the same center of gravity. Select a layer to expand its companies; select a company for details.</p>
+    </div>
+    <div id="stage" class="reveal">
+      <svg id="chart"></svg>
+      <div class="hint">Click a layer bubble · Click a company for details · Click background to close</div>
+    </div>
+  </div>
+</section>
+
+<!-- ───────── About / Footer ───────── -->
+<footer id="about">
+  <div class="container">
+    <div class="foot-grid">
+      <div class="foot-brand">
+        <a class="brand" href="#top">
+          <span class="brand-mark">AI</span>
+          <span class="brand-name">The AI <em>Stack</em></span>
+        </a>
+        <p class="foot-note"><strong>Not investment advice.</strong> This is an illustrative map of how companies relate within the AI supply chain — a reference for orientation, not a price feed, index, or recommendation. Company placement is simplified; many span more than one layer.</p>
+        <p class="foot-note"><strong>US market only:</strong> tickers on foreign exchanges — Neo Performance Materials (TSX), Samsung and SK Hynix (KRX), Kioxia (TSE) — and private companies show no market data. Neither data source covers non-US exchanges, so these are permanently out of scope for the automated feed rather than pending.</p>
+        <p class="foot-note"><strong>Prices, updated weekly:</strong> click any company for its detail card — current price with a 60-day sparkline, 52-week high/low, YTD performance, and the last-20-days change. "Last refreshed" above reflects the last completed US market close the pipeline pulled, whether from the Friday schedule or a manual run.</p>
+      </div>
+      <div class="foot-links">
+        <div class="foot-col">
+          <div class="h">Upstream</div>
+          <a href="#l0">Design Software</a>
+          <a href="#l1">Foundry &amp; Equipment</a>
+          <a href="#l2">Silicon</a>
+          <a href="#l3">Networking &amp; Optics</a>
+          <a href="#l4">Memory</a>
+        </div>
+        <div class="foot-col">
+          <div class="h">Downstream</div>
+          <a href="#l5">Models &amp; Software</a>
+          <a href="#l6">Cloud Infrastructure</a>
+          <a href="#l7">Security</a>
+          <a href="#l8">Power &amp; Cooling</a>
+          <a href="#l9">Consumer &amp; Devices</a>
+        </div>
+        <div class="foot-col">
+          <div class="h">More</div>
+          <a href="#ln">Notable Stocks</a>
+          <a href="#bubbles">Bubble Map</a>
+          <a href="ai-stack-bubbles.html">Full-Screen Bubble Map ↗</a>
+          <a href="#top">Back to top</a>
+        </div>
+      </div>
+    </div>
+    <div class="foot-base">
+      <span>The AI Stack · Reference Edition</span>
+      <span>Upstream → Downstream</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ───────── Modal ───────── -->
+<div id="scrim"></div>
+<div id="modal" role="dialog" aria-modal="true" aria-labelledby="mName">
+  <button class="close" id="modalClose" aria-label="Close">✕</button>
+  <div class="m-layer" id="mLayer"></div>
+  <div class="m-row">
+    <div class="m-name" id="mName"></div>
+    <div class="m-sym" id="mSym"></div>
+  </div>
+  <div class="m-role" id="mRole"></div>
+  <div class="m-pos" id="mPos"></div>
+
+  <div id="mPriceBody">
+    <div class="m-price-row">
+      <div>
+        <div class="m-price-label">Price</div>
+        <div class="m-price" id="mPrice"></div>
+      </div>
+      <svg class="m-sparkline" id="mSparkline" viewBox="0 0 130 52" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="m-stats">
+      <div class="m-stat">
+        <div class="m-stat-label">52 Week High</div>
+        <div class="m-stat-value" id="mHigh"></div>
+        <div class="m-stat-pct" id="mHighPct"></div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-label">52 Week Low</div>
+        <div class="m-stat-value" id="mLow"></div>
+        <div class="m-stat-pct" id="mLowPct"></div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-label">YTD Performance</div>
+        <div class="m-stat-pct-big" id="mYtd"></div>
+        <div class="m-stat-sub">Year to date</div>
+      </div>
+      <div class="m-stat">
+        <div class="m-stat-label">Last 20 Days</div>
+        <div class="m-stat-pct-big" id="m20d"></div>
+        <div class="m-stat-sub">Price change</div>
+      </div>
+    </div>
+    <div class="m-range" id="mRangeWrap">
+      <div class="m-range-labels">
+        <div><span class="m-range-tag low">52W Low</span><span id="mRangeLow"></span></div>
+        <div class="m-range-current"><span class="m-range-tag">Current</span><span id="mRangeCurrent"></span></div>
+        <div><span class="m-range-tag high">52W High</span><span id="mRangeHigh"></span></div>
+      </div>
+      <div class="m-range-track"><div class="m-range-dot" id="mRangeDot"></div></div>
+    </div>
+  </div>
+  <div class="m-empty" id="mEmpty" hidden></div>
+</div>
 
 <script>
-  const chips = Array.from(document.querySelectorAll('.chip'));
-  const items = chips.map(c => {
-    const name = c.querySelector('.name').textContent.trim();
-    const sym = c.querySelector('.ticker-sym').textContent.trim();
-    return `<span><b>${sym}</b> ${name}</span>`;
-  }).join('');
-  document.getElementById('ticker').innerHTML = items + items;
-
-  const sections = document.querySelectorAll('.layer');
-  const navLinks = document.querySelectorAll('.railnav a');
-  const spy = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting){
-        const id = entry.target.getAttribute('id');
-        navLinks.forEach(l => l.classList.toggle('active', l.getAttribute('href') === '#' + id));
-      }
-    });
-  }, { rootMargin: '-40% 0px -50% 0px' });
-  sections.forEach(s => spy.observe(s));
-
-  /* ---------------- Ticker detail modal ---------------- */
-  let PRICES_DATA = null;
-
-  const fmtPct = (v) => (v == null ? null : (v >= 0 ? '+' : '') + v.toFixed(1) + '%');
-  const cls = (v) => (v == null ? '' : v >= 0 ? 'up' : 'down');
-  const fmtPrice = (v, cur) => (v == null ? null : (cur === 'CAD' ? 'C$' : '$') + v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
-
-  const modal = document.getElementById('tickerModal');
-  const modalBody = document.getElementById('modalBody');
-  const modalEmpty = document.getElementById('modalEmpty');
-  let lastFocusedChip = null;
-
-  function drawSparkline(history) {
-    const svg = document.getElementById('modalSparkline');
-    if (!history || history.length < 2) { svg.innerHTML = ''; return; }
-    const w = 130, h = 52, pad = 3;
-    const min = Math.min(...history), max = Math.max(...history);
-    const range = (max - min) || 1;
-    const step = (w - pad * 2) / (history.length - 1);
-    const points = history.map((v, i) => {
-      const x = pad + i * step;
-      const y = pad + (h - pad * 2) * (1 - (v - min) / range);
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    });
-    const up = history[history.length - 1] >= history[0];
-    const color = up ? 'var(--up)' : 'var(--down)';
-    const areaPoints = `${pad},${h - pad} ` + points.join(' ') + ` ${w - pad},${h - pad}`;
-    svg.innerHTML = `
-      <polyline points="${areaPoints}" fill="${color}" opacity="0.12" stroke="none"></polyline>
-      <polyline points="${points.join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
-    `;
-  }
-
-  function openModal(chip) {
-    lastFocusedChip = chip;
-    const ticker = chip.getAttribute('data-ticker');
-    const market = chip.getAttribute('data-market');
-    const name = chip.querySelector('.name').textContent.trim();
-    const role = chip.querySelector('.role').textContent.trim();
-
-    document.getElementById('modalAvatar').textContent = name.charAt(0).toUpperCase();
-    document.querySelector('.modal-panel').style.setProperty('--rail', getComputedStyle(chip.closest('.layer')).getPropertyValue('--rail'));
-    document.getElementById('modalTicker').textContent = ticker;
-    document.getElementById('modalName').textContent = name;
-    document.getElementById('modalRole').textContent = role;
-
-    const entry = (!market && PRICES_DATA) ? PRICES_DATA[ticker] : null;
-
-    if (!entry) {
-      modalBody.hidden = true;
-      modalEmpty.hidden = false;
-      modalEmpty.textContent = market === 'private'
-        ? 'Private company — no public ticker, no market data.'
-        : market === 'non-us'
-          ? 'Foreign-listed — not covered by the automated price feed.'
-          : 'No price data yet for this ticker — check back after the next weekly update.';
-    } else {
-      modalBody.hidden = false;
-      modalEmpty.hidden = true;
-
-      const price = entry.price, high52 = entry.high52, low52 = entry.low52, ytdStart = entry.ytdStart;
-      const history = entry.history || [];
-
-      const priceEl = document.getElementById('modalPrice');
-      priceEl.textContent = fmtPrice(price, entry.currency) || 'NA';
-      priceEl.classList.toggle('na', price == null);
-
-      drawSparkline(history);
-
-      const pctFromHigh = (price != null && high52) ? ((price - high52) / high52) * 100 : null;
-      const pctFromLow  = (price != null && low52)  ? ((price - low52)  / low52)  * 100 : null;
-      const pctYtd      = (price != null && ytdStart) ? ((price - ytdStart) / ytdStart) * 100 : null;
-      const pct20d      = (history.length >= 21 && history[history.length - 21])
-        ? ((price - history[history.length - 21]) / history[history.length - 21]) * 100
-        : null;
-
-      document.getElementById('modalHigh').textContent = fmtPrice(high52, entry.currency) || 'NA';
-      document.getElementById('modalHighPct').innerHTML = pctFromHigh != null
-        ? `<span class="${cls(pctFromHigh)}">${fmtPct(pctFromHigh)}</span>` : '<span>NA</span>';
-
-      document.getElementById('modalLow').textContent = fmtPrice(low52, entry.currency) || 'NA';
-      document.getElementById('modalLowPct').innerHTML = pctFromLow != null
-        ? `<span class="${cls(pctFromLow)}">${fmtPct(pctFromLow)}</span>` : '<span>NA</span>';
-
-      document.getElementById('modalYtd').innerHTML = pctYtd != null
-        ? `<span class="${cls(pctYtd)}">${fmtPct(pctYtd)}</span>` : '<span>NA</span>';
-
-      document.getElementById('modal20d').innerHTML = pct20d != null
-        ? `<span class="${cls(pct20d)}">${fmtPct(pct20d)}</span>` : '<span>NA</span>';
-
-      const rangeWrap = document.getElementById('modalRangeWrap');
-      if (price != null && high52 && low52 && high52 > low52) {
-        rangeWrap.hidden = false;
-        document.getElementById('modalRangeLow').textContent = fmtPrice(low52, entry.currency);
-        document.getElementById('modalRangeCurrent').textContent = fmtPrice(price, entry.currency);
-        document.getElementById('modalRangeHigh').textContent = fmtPrice(high52, entry.currency);
-        const pos = Math.min(100, Math.max(0, ((price - low52) / (high52 - low52)) * 100));
-        document.getElementById('modalRangeDot').style.left = pos + '%';
-      } else {
-        rangeWrap.hidden = true;
-      }
-    }
-
-    modal.hidden = false;
-    document.getElementById('modalCloseBtn').focus();
-  }
-
-  function closeModal() {
-    modal.hidden = true;
-    if (lastFocusedChip) lastFocusedChip.focus();
-  }
-
-  document.querySelectorAll('.chip[data-ticker]').forEach(chip => {
-    chip.addEventListener('click', () => openModal(chip));
-    chip.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(chip); }
-    });
-  });
-  document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
-  modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
-
-  fetch('./prices.json', { cache: 'no-store' })
-    .then(r => r.ok ? r.json() : null)
-    .then(data => {
-      if (!data) return;
-      PRICES_DATA = data;
-      const meta = data._meta || {};
-      const refreshEl = document.getElementById('lastRefresh');
-      if (refreshEl && meta.asOf) {
-        refreshEl.textContent = 'Last refreshed: ' + meta.asOf + ' close (weekly, US market only)';
-        refreshEl.classList.add('live');
-      }
-    })
-    .catch(() => { /* prices.json missing or unreachable — modal shows "no data" per ticker */ });
-
-
+/* ═════════ Data — single source of truth ═════════ */
+const LAYERS = [
+  { id:"l0", num:"I", name:"Design Software", tag:"EDA", color:"#6FAF9E",
+    desc:"Before a wafer is ever cut, a chip is designed in software. These two firms hold a near-duopoly on the electronic design automation tools every chipmaker relies on.",
+    companies:[
+      {name:"Cadence", ticker:"CDNS", role:"EDA, AI-driven chip design", market:null},
+      {name:"Synopsys", ticker:"SNPS", role:"EDA, silicon IP", market:null},
+    ]},
+  { id:"l1", num:"II", name:"Foundry & Equipment", tag:null, color:"#6B8CAE",
+    desc:"The physical toolmakers. Without this layer, no advanced chip gets made — lithography, etching, and deposition tools are the real bottleneck of the entire stack.",
+    companies:[
+      {name:"TSMC", ticker:"TSM", role:"Contract chip manufacturing", market:null},
+      {name:"ASML", ticker:"ASML", role:"EUV lithography monopoly", market:null},
+      {name:"Applied Materials", ticker:"AMAT", role:"Wafer fab equipment", market:null},
+      {name:"Lam Research", ticker:"LRCX", role:"Etch & deposition", market:null},
+      {name:"KLA Corp", ticker:"KLAC", role:"Process control & inspection", market:null},
+    ]},
+  { id:"l2", num:"III", name:"Silicon", tag:null, color:"#C9A05C",
+    desc:"The chip designers. These companies design the GPUs, accelerators, and CPU architectures that actually run AI workloads, then hand manufacturing to Layer II.",
+    companies:[
+      {name:"Nvidia", ticker:"NVDA", role:"AI accelerator leader", market:null},
+      {name:"Broadcom", ticker:"AVGO", role:"Custom AI silicon (ASICs)", market:null},
+      {name:"AMD", ticker:"AMD", role:"GPU & CPU challenger", market:null},
+      {name:"Intel", ticker:"INTC", role:"CPU incumbent, foundry bet", market:null},
+      {name:"Qualcomm", ticker:"QCOM", role:"Edge & mobile AI chips", market:null},
+      {name:"Arm Holdings", ticker:"ARM", role:"CPU architecture licensor", market:null},
+      {name:"Cerebras", ticker:"CBRS", role:"Wafer-scale AI inference chips", market:null},
+    ]},
+  { id:"l3", num:"IV", name:"Networking & Optics", tag:null, color:"#8C7FD1",
+    desc:"The connective tissue. Chips are useless if data can't move between them fast enough. Photonics, optical transceivers, and switches carry traffic between GPUs, racks, and data centers.",
+    companies:[
+      {name:"Lumentum", ticker:"LITE", role:"Photonic integrated circuits", market:null},
+      {name:"Coherent", ticker:"COHR", role:"Photonics for AI data centers", market:null},
+      {name:"Applied Optoelectronics", ticker:"AAOI", role:"Optical transceivers", market:null},
+      {name:"Viavi Solutions", ticker:"VIAV", role:"Network testing & assurance", market:null},
+      {name:"Marvell", ticker:"MRVL", role:"Custom silicon for data infra", market:null},
+      {name:"Credo", ticker:"CRDO", role:"High-speed connectivity for AI", market:null},
+      {name:"Astera Labs", ticker:"ALAB", role:"Connectivity for AI clusters", market:null},
+      {name:"Arista Networks", ticker:"ANET", role:"Cloud networking switches", market:null},
+      {name:"Cisco", ticker:"CSCO", role:"Enterprise networking incumbent", market:null},
+      {name:"Ciena", ticker:"CIEN", role:"Optical networking systems", market:null},
+      {name:"Amphenol", ticker:"APH", role:"High-speed interconnects", market:null},
+      {name:"Semtech", ticker:"SMTC", role:"Optical modules & signal ICs", market:null},
+    ]},
+  { id:"l4", num:"V", name:"Memory", tag:null, color:"#7FA88E",
+    desc:"The bottleneck of the moment. DRAM and NAND feed every GPU cluster — HBM demand has flipped memory from a boring commodity business into one of the tightest markets in tech.",
+    companies:[
+      {name:"Micron", ticker:"MU", role:"US DRAM & HBM", market:null},
+      {name:"Samsung", ticker:"005930.KS", role:"DRAM & HBM, largest scale", market:"non-us"},
+      {name:"SK Hynix", ticker:"000660.KS", role:"HBM share leader", market:"non-us"},
+      {name:"SanDisk", ticker:"SNDK", role:"NAND flash & storage", market:null},
+      {name:"Western Digital", ticker:"WDC", role:"Storage & NAND", market:null},
+      {name:"Kioxia", ticker:"285A.T", role:"NAND, Toshiba spinoff", market:"non-us"},
+      {name:"Seagate", ticker:"STX", role:"Hard drives & storage", market:null},
+      {name:"Everpure", ticker:"P", role:"Flash storage for AI data", market:null},
+    ]},
+  { id:"l5", num:"VI", name:"Models & Software", tag:null, color:"#B98BC9",
+    desc:"Where compute becomes a product. These companies build or deploy the AI models themselves, and largely decide how much upstream demand gets pulled through the stack.",
+    companies:[
+      {name:"Microsoft", ticker:"MSFT", role:"Azure AI, OpenAI partner", market:null},
+      {name:"Alphabet", ticker:"GOOGL", role:"Gemini, TPUs, DeepMind", market:null},
+      {name:"Meta", ticker:"META", role:"Llama, largest AI capex", market:null},
+      {name:"Palantir", ticker:"PLTR", role:"Enterprise AI deployment", market:null},
+      {name:"Anthropic", ticker:"Private", role:"Claude, safety-focused frontier lab", market:"private"},
+      {name:"OpenAI", ticker:"Private", role:"ChatGPT, GPT model family", market:"private"},
+      {name:"xAI", ticker:"Private", role:"Grok model family", market:"private"},
+      {name:"Mistral AI", ticker:"Private", role:"Open-weight European frontier lab", market:"private"},
+      {name:"Perplexity", ticker:"Private", role:"AI-powered answer engine", market:"private"},
+    ]},
+  { id:"l6", num:"VII", name:"Cloud Infrastructure", tag:null, color:"#5EA8C7",
+    desc:"The rented compute layer. Rather than build data centers themselves, most AI developers rent GPU capacity from hyperscalers, pure-play \"neoclouds,\" former crypto miners pivoting to AI compute, or colocation landlords.",
+    companies:[
+      {name:"Amazon (AWS)", ticker:"AMZN", role:"Largest cloud provider", market:null},
+      {name:"Oracle", ticker:"ORCL", role:"OCI, aggressive AI capex", market:null},
+      {name:"CoreWeave", ticker:"CRWV", role:"Pure-play GPU cloud", market:null},
+      {name:"Nebius", ticker:"NBIS", role:"Ex-Yandex AI cloud", market:null},
+      {name:"Applied Digital", ticker:"APLD", role:"AI data center leasing", market:null},
+      {name:"IREN", ticker:"IREN", role:"Ex-crypto miner, now AI compute", market:null},
+      {name:"TeraWulf", ticker:"WULF", role:"Ex-crypto miner, now AI compute", market:null},
+      {name:"Cipher Mining", ticker:"CIFR", role:"Ex-crypto miner, now AI compute", market:null},
+      {name:"Hut 8", ticker:"HUT", role:"Ex-crypto miner, now AI compute", market:null},
+      {name:"Galaxy Digital", ticker:"GLXY", role:"Digital assets pivoting to AI infra", market:null},
+      {name:"Equinix", ticker:"EQIX", role:"Data center colocation REIT", market:null},
+      {name:"Digital Realty", ticker:"DLR", role:"Data center colocation REIT", market:null},
+    ]},
+  { id:"l7", num:"VIII", name:"Security", tag:null, color:"#B85C6B",
+    desc:"Someone has to protect the cloud workloads above and, increasingly, the models themselves — a newer front now that AI can find software vulnerabilities near-autonomously.",
+    companies:[
+      {name:"CrowdStrike", ticker:"CRWD", role:"Endpoint & AI-driven threat detection", market:null},
+      {name:"Palo Alto Networks", ticker:"PANW", role:"Network & cloud security platform", market:null},
+      {name:"Cloudflare", ticker:"NET", role:"Network layer AI agents run through", market:null},
+      {name:"Zscaler", ticker:"ZS", role:"Zero-trust cloud security", market:null},
+      {name:"Fortinet", ticker:"FTNT", role:"Network security, organic cloud growth", market:null},
+      {name:"Datadog", ticker:"DDOG", role:"Cloud monitoring & observability", market:null},
+    ]},
+  { id:"l8", num:"IX", name:"Power & Cooling", tag:null, color:"#C0654F",
+    desc:"The physical bottleneck behind the bottleneck. AI racks draw so much power and heat that generation, grid capacity, and thermal management have become their own investable category.",
+    companies:[
+      {name:"Vertiv", ticker:"VRT", role:"Data center power & liquid cooling", market:null},
+      {name:"Eaton", ticker:"ETN", role:"Grid-to-chip power, record backlog", market:null},
+      {name:"GE Vernova", ticker:"GEV", role:"Turbines & grid electrification", market:null},
+      {name:"Constellation Energy", ticker:"CEG", role:"Largest US nuclear fleet", market:null},
+      {name:"Vistra", ticker:"VST", role:"Independent power, AWS/Meta PPAs", market:null},
+      {name:"Quanta Services", ticker:"PWR", role:"Grid construction, record backlog", market:null},
+      {name:"nVent Electric", ticker:"NVT", role:"Liquid cooling distribution", market:null},
+      {name:"NextEra Energy", ticker:"NEE", role:"Largest US renewable power producer", market:null},
+      {name:"Talen Energy", ticker:"TLN", role:"Nuclear power, direct hyperscaler PPAs", market:null},
+      {name:"Oklo", ticker:"OKLO", role:"Small modular reactor developer", market:null},
+      {name:"Bloom Energy", ticker:"BE", role:"On-site fuel cell power", market:null},
+    ]},
+  { id:"l9", num:"X", name:"Consumer & Devices", tag:null, color:"#C08552",
+    desc:"Where the stack meets your hands. Consumer hardware absorbs the AI buildout's cost pressure directly — memory shortages upstream are already showing up as price hikes here.",
+    companies:[
+      {name:"Apple", ticker:"AAPL", role:"iPhone, Mac, on-device AI", market:null},
+      {name:"Dell Technologies", ticker:"DELL", role:"AI PCs & servers", market:null},
+      {name:"HP Inc.", ticker:"HPQ", role:"Consumer PCs", market:null},
+      {name:"Samsung Electronics", ticker:"005930.KS", role:"Phones + own memory", market:"non-us"},
+    ]},
+  { id:"ln", num:"＋", name:"Notable Stocks", tag:"CATCH-ALL", color:"#9C8F73",
+    desc:"Real names worth tracking that don't cleanly sit in one layer above — diversified enterprise software giants, the contract manufacturers who physically assemble servers, the utilities that supply the water AI data centers need for cooling, and the rare earth miners behind the magnets in motors, robotics, and defense electronics.",
+    companies:[
+      {name:"Adobe", ticker:"ADBE", role:"AI-powered creative software", market:null},
+      {name:"Salesforce", ticker:"CRM", role:"Agentforce, AI-driven CRM", market:null},
+      {name:"SAP", ticker:"SAP", role:"Enterprise resource planning + AI", market:null},
+      {name:"IBM", ticker:"IBM", role:"watsonx, hybrid cloud & AI consulting", market:null},
+      {name:"Celestica", ticker:"CLS", role:"Contract manufacturer, AI servers", market:null},
+      {name:"Flex", ticker:"FLEX", role:"Contract manufacturer, data center gear", market:null},
+      {name:"Fabrinet", ticker:"FN", role:"Contract manufacturer, optical parts", market:null},
+      {name:"Sanmina", ticker:"SANM", role:"Contract manufacturer, electronics", market:null},
+      {name:"American Water", ticker:"AWK", role:"Water utility, data center cooling supply", market:null},
+      {name:"Essential Utilities", ticker:"WTRG", role:"Water & wastewater utility", market:null},
+      {name:"Badger Meter", ticker:"BMI", role:"Smart water measurement", market:null},
+      {name:"Centrus Energy", ticker:"LEU", role:"Uranium enrichment for nuclear power", market:null},
+      {name:"MP Materials", ticker:"MP", role:"US rare earth mining & magnets", market:null},
+      {name:"Neo Performance Materials", ticker:"NEO", role:"Rare earth processing & magnetics", market:"non-us"},
+      {name:"USA Rare Earth", ticker:"USAR", role:"Mine-to-magnet rare earth supply chain", market:null},
+    ]},
+];
 </script>
+<script>
+/* ═════════ Render: layers, pills, railnav, ticker ═════════ */
+const $ = s => document.querySelector(s);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;");
 
+const layersEl = $("#layers");
+layersEl.innerHTML = LAYERS.map(L => `
+  <section class="layer" id="${L.id}" style="--rail:${L.color}">
+    <div class="layer-head">
+      <span class="numeral">${L.num}</span>
+      <h3 class="layer-title">${esc(L.name)}</h3>
+      ${L.tag ? `<span class="layer-tag">${esc(L.tag)}</span>` : ""}
+    </div>
+    <p class="layer-desc">${esc(L.desc)}</p>
+    <div class="rail">
+      <div class="grid">
+        ${L.companies.map((c,i) => `
+          <div class="card" tabindex="0" role="button"
+               data-layer="${L.id}" data-i="${i}"
+               data-q="${esc((c.name + " " + c.ticker).toLowerCase())}"
+               data-vis="${c.ticker === "Private" ? "private" : "public"}">
+            <div><span class="name">${esc(c.name)}</span><span class="role">${esc(c.role)}</span></div>
+            <span class="sym">${esc(c.ticker)}</span>
+          </div>`).join("")}
+      </div>
+    </div>
+  </section>`).join("");
+
+$("#layerPills").innerHTML = LAYERS.map(L =>
+  `<button class="pill" data-pill="${L.id}" style="--pc:${L.color}">${esc(L.name)}</button>`).join("");
+
+$("#railnav").innerHTML = LAYERS.map(L =>
+  `<a href="#${L.id}" data-label="${esc(L.name)}" style="--pc:${L.color}"></a>`).join("");
+
+const allCompanies = LAYERS.flatMap(L => L.companies.map(c => ({...c, layer:L})));
+const tickerHTML = allCompanies.map(c => `<span><b>${esc(c.ticker)}</b> ${esc(c.name)}</span>`).join("");
+$("#ticker").innerHTML = tickerHTML + tickerHTML;
+
+/* ═════════ Search & filters ═════════ */
+const searchInput = $("#searchInput"), searchWrap = $("#searchWrap");
+const state = { q:"", vis:"all", pills:new Set() };
+
+function applyFilters(){
+  const q = state.q.trim().toLowerCase();
+  let shown = 0;
+  LAYERS.forEach(L => {
+    const sec = document.getElementById(L.id);
+    const pillOK = state.pills.size === 0 || state.pills.has(L.id);
+    let layerShown = 0;
+    sec.querySelectorAll(".card").forEach(card => {
+      const ok = pillOK
+        && (state.vis === "all" || card.dataset.vis === state.vis)
+        && (!q || card.dataset.q.includes(q));
+      card.classList.toggle("dim", !ok && pillOK && (q || state.vis !== "all"));
+      if(!pillOK){ /* whole section hidden below */ }
+      if(ok) layerShown++;
+    });
+    const hide = !pillOK || layerShown === 0;
+    sec.classList.toggle("hidden", hide);
+    if(!hide) shown += layerShown;
+  });
+  $("#emptyState").classList.toggle("show", shown === 0);
+  $("#resultsNote").textContent = (q || state.vis !== "all" || state.pills.size)
+    ? `${shown} / ${allCompanies.length}` : `${allCompanies.length} companies`;
+}
+applyFilters();
+
+searchInput.addEventListener("input", () => {
+  state.q = searchInput.value;
+  searchWrap.classList.toggle("has-value", !!state.q);
+  applyFilters();
+});
+$("#searchClear").addEventListener("click", () => {
+  searchInput.value = ""; state.q = "";
+  searchWrap.classList.remove("has-value");
+  applyFilters(); searchInput.focus();
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "/" && document.activeElement !== searchInput){
+    e.preventDefault();
+    searchInput.focus();
+    $("#toolbar").scrollIntoView({behavior:"smooth", block:"start"});
+  }
+});
+$("#visSeg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if(!b) return;
+  $("#visSeg .on").classList.remove("on");
+  b.classList.add("on");
+  state.vis = b.dataset.vis;
+  applyFilters();
+});
+$("#layerPills").addEventListener("click", e => {
+  const b = e.target.closest(".pill"); if(!b) return;
+  const id = b.dataset.pill;
+  state.pills.has(id) ? state.pills.delete(id) : state.pills.add(id);
+  b.classList.toggle("on");
+  applyFilters();
+});
+
+/* ═════════ Modal ═════════ */
+const modal = $("#modal"), scrim = $("#scrim");
+let lastFocus = null;
+let PRICES_DATA = null;
+
+const fmtPct = v => (v == null ? null : (v >= 0 ? "+" : "") + v.toFixed(1) + "%");
+const pctCls = v => (v == null ? "" : v >= 0 ? "up" : "down");
+const fmtPrice = (v, cur) => (v == null ? null : (cur === "CAD" ? "C$" : "$") + v.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}));
+
+function drawSparkline(history){
+  const svg = $("#mSparkline");
+  if(!history || history.length < 2){ svg.innerHTML = ""; return; }
+  const w = 130, h = 52, pad = 3;
+  const min = Math.min(...history), max = Math.max(...history);
+  const range = (max - min) || 1;
+  const step = (w - pad*2) / (history.length - 1);
+  const points = history.map((v,i) => {
+    const x = pad + i*step;
+    const y = pad + (h - pad*2) * (1 - (v - min)/range);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  const up = history[history.length-1] >= history[0];
+  const color = up ? "var(--up)" : "var(--down)";
+  const areaPoints = `${pad},${h-pad} ` + points.join(" ") + ` ${w-pad},${h-pad}`;
+  svg.innerHTML = `
+    <polyline points="${areaPoints}" fill="${color}" opacity="0.14" stroke="none"></polyline>
+    <polyline points="${points.join(" ")}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"></polyline>
+  `;
+}
+
+function openModal(c, layer){
+  lastFocus = document.activeElement;
+  modal.style.setProperty("--mc", layer.color);
+  const idx = LAYERS.indexOf(layer);
+  const flow = idx < 5 ? "upstream" : idx < 10 ? "downstream" : "cross-layer";
+  $("#mLayer").textContent = `Layer ${layer.num} — ${layer.name}`;
+  $("#mName").textContent = c.name;
+  $("#mSym").textContent = c.ticker;
+  $("#mRole").textContent = c.role;
+  $("#mPos").innerHTML = `Position in stack · <b>${esc(layer.name)}</b> — ${flow} · Listing · <b>${c.market === "private" ? "Private company" : c.market === "non-us" ? "Public — foreign-listed" : "Public — " + esc(c.ticker)}</b>`;
+
+  const priceBody = $("#mPriceBody"), empty = $("#mEmpty");
+  const entry = (!c.market && PRICES_DATA) ? PRICES_DATA[c.ticker] : null;
+
+  if(!entry){
+    priceBody.hidden = true;
+    empty.hidden = false;
+    empty.textContent = c.market === "private"
+      ? "Private company — no public ticker, no market data."
+      : c.market === "non-us"
+        ? "Foreign-listed — not covered by the automated price feed."
+        : "No price data yet for this ticker — check back after the next weekly update.";
+  } else {
+    priceBody.hidden = false;
+    empty.hidden = true;
+    const price = entry.price, high52 = entry.high52, low52 = entry.low52, ytdStart = entry.ytdStart;
+    const history = entry.history || [];
+
+    const priceEl = $("#mPrice");
+    priceEl.textContent = fmtPrice(price, entry.currency) || "NA";
+    priceEl.classList.toggle("na", price == null);
+    drawSparkline(history);
+
+    const pctFromHigh = (price != null && high52) ? ((price - high52) / high52) * 100 : null;
+    const pctFromLow  = (price != null && low52)  ? ((price - low52)  / low52)  * 100 : null;
+    const pctYtd      = (price != null && ytdStart) ? ((price - ytdStart) / ytdStart) * 100 : null;
+    const pct20d      = (history.length >= 21 && history[history.length - 21])
+      ? ((price - history[history.length - 21]) / history[history.length - 21]) * 100 : null;
+
+    $("#mHigh").textContent = fmtPrice(high52, entry.currency) || "NA";
+    $("#mHighPct").innerHTML = pctFromHigh != null ? `<span class="${pctCls(pctFromHigh)}">${fmtPct(pctFromHigh)}</span>` : "<span>NA</span>";
+    $("#mLow").textContent = fmtPrice(low52, entry.currency) || "NA";
+    $("#mLowPct").innerHTML = pctFromLow != null ? `<span class="${pctCls(pctFromLow)}">${fmtPct(pctFromLow)}</span>` : "<span>NA</span>";
+    $("#mYtd").innerHTML = pctYtd != null ? `<span class="${pctCls(pctYtd)}">${fmtPct(pctYtd)}</span>` : "<span>NA</span>";
+    $("#m20d").innerHTML = pct20d != null ? `<span class="${pctCls(pct20d)}">${fmtPct(pct20d)}</span>` : "<span>NA</span>";
+
+    const rangeWrap = $("#mRangeWrap");
+    if(price != null && high52 && low52 && high52 > low52){
+      rangeWrap.hidden = false;
+      $("#mRangeLow").textContent = fmtPrice(low52, entry.currency);
+      $("#mRangeCurrent").textContent = fmtPrice(price, entry.currency);
+      $("#mRangeHigh").textContent = fmtPrice(high52, entry.currency);
+      const pos = Math.min(100, Math.max(0, ((price - low52) / (high52 - low52)) * 100));
+      $("#mRangeDot").style.left = pos + "%";
+    } else {
+      rangeWrap.hidden = true;
+    }
+  }
+
+  modal.classList.add("open"); scrim.classList.add("open");
+  document.body.style.overflow = "hidden";
+  $("#modalClose").focus();
+}
+function closeModal(){
+  modal.classList.remove("open"); scrim.classList.remove("open");
+  document.body.style.overflow = "";
+  if(lastFocus) lastFocus.focus();
+}
+$("#modalClose").addEventListener("click", closeModal);
+scrim.addEventListener("click", closeModal);
+document.addEventListener("keydown", e => { if(e.key === "Escape") closeModal(); });
+
+layersEl.addEventListener("click", e => {
+  const card = e.target.closest(".card"); if(!card) return;
+  const L = LAYERS.find(l => l.id === card.dataset.layer);
+  openModal(L.companies[+card.dataset.i], L);
+});
+layersEl.addEventListener("keydown", e => {
+  if(e.key !== "Enter" && e.key !== " ") return;
+  const card = e.target.closest(".card"); if(!card) return;
+  e.preventDefault();
+  const L = LAYERS.find(l => l.id === card.dataset.layer);
+  openModal(L.companies[+card.dataset.i], L);
+});
+
+/* ═════════ Scroll: nav state, reveals, count-up, scrollspy ═════════ */
+const nav = $("#nav");
+addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 8), {passive:true});
+
+document.querySelectorAll(".layer, .section-head, .toolbar, #stage").forEach(el => {
+  if(!el.classList.contains("reveal")) el.classList.add("reveal");
+});
+const revealIO = new IntersectionObserver(entries => {
+  entries.forEach(en => { if(en.isIntersecting){ en.target.classList.add("in"); revealIO.unobserve(en.target); } });
+}, {threshold:.08, rootMargin:"0px 0px -6% 0px"});
+document.querySelectorAll(".reveal").forEach(el => revealIO.observe(el));
+
+function countUp(el){
+  const target = +el.dataset.count, dur = 1200, t0 = performance.now();
+  const step = t => {
+    const p = Math.min((t - t0) / dur, 1);
+    el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3)));
+    if(p < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+const statIO = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if(en.isIntersecting){
+      en.target.querySelectorAll("[data-count]").forEach(countUp);
+      statIO.unobserve(en.target);
+    }
+  });
+}, {threshold:.4});
+statIO.observe($(".hero-stats"));
+
+const railLinks = document.querySelectorAll(".railnav a");
+const spy = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if(en.isIntersecting){
+      const id = en.target.id;
+      railLinks.forEach(l => l.classList.toggle("active", l.getAttribute("href") === "#" + id));
+    }
+  });
+}, {rootMargin:"-40% 0px -50% 0px"});
+document.querySelectorAll(".layer").forEach(s => spy.observe(s));
+
+/* ═════════ Bubble map (D3) ═════════ */
+const stage = $("#stage");
+let bubblesBuilt = false, activeIdx = null;
+
+function buildBubbles(){
+  const svg = d3.select("#chart");
+  svg.selectAll("*").remove();
+  activeIdx = null;
+
+  const W = stage.clientWidth, H = stage.clientHeight;
+  const D = Math.min(W, H);
+  const N = LAYERS.length;
+  svg.attr("viewBox", `${-W/2} ${-H/2} ${W} ${H}`);
+
+  const AI_R = D * 0.075;
+  const ORBIT_R = D * 0.30;
+  const arcHalf = (Math.PI * ORBIT_R) / N;
+  const LAYER_R = Math.min(D * 0.068, arcHalf - 5);
+  const CO_EXP_R = Math.min(D * 0.048, 22);
+
+  const defs = svg.append("defs");
+  const filt = defs.append("filter").attr("id","ai-glow")
+    .attr("x","-60%").attr("y","-60%").attr("width","220%").attr("height","220%");
+  filt.append("feGaussianBlur").attr("in","SourceGraphic").attr("stdDeviation","7").attr("result","blur");
+  const fm = filt.append("feMerge");
+  fm.append("feMergeNode").attr("in","blur");
+  fm.append("feMergeNode").attr("in","SourceGraphic");
+
+  const positions = LAYERS.map((layer, i) => {
+    const angle = (i / N) * 2 * Math.PI - Math.PI / 2;
+    return { x: ORBIT_R * Math.cos(angle), y: ORBIT_R * Math.sin(angle), idx: i, layer };
+  });
+
+  const spokesG = svg.append("g");
+  const expSpokesG = svg.append("g");
+  const expBubblesG = svg.append("g");
+  const layerBubblesG = svg.append("g");
+  const centerG = svg.append("g");
+
+  const mainSpokes = spokesG.selectAll(".ms").data(positions).enter()
+    .append("line")
+      .attr("x1",0).attr("y1",0)
+      .attr("x2",d=>d.x).attr("y2",d=>d.y)
+      .attr("stroke",d=>d.layer.color)
+      .attr("stroke-width",1.4).attr("stroke-dasharray","6,5")
+      .attr("stroke-linecap","round").attr("stroke-opacity",0);
+
+  const layerGs = layerBubblesG.selectAll(".lg").data(positions).enter()
+    .append("g")
+      .attr("transform",d=>`translate(${d.x},${d.y})`)
+      .style("cursor","pointer").style("opacity",0)
+      .on("click",(e,d)=>{ e.stopPropagation(); toggle(d.idx); });
+
+  layerGs.append("circle").attr("class","active-ring")
+    .attr("r",LAYER_R+5).attr("fill","none")
+    .attr("stroke",d=>d.layer.color).attr("stroke-width",1.5)
+    .attr("stroke-dasharray","3,3").attr("stroke-opacity",0);
+
+  layerGs.append("circle")
+    .attr("r",LAYER_R)
+    .attr("fill",d=>d.layer.color).attr("fill-opacity",.85)
+    .attr("stroke",d=>d.layer.color).attr("stroke-width",1.5);
+
+  const fitText = (str,r,cpr) => {
+    const max = Math.max(3, Math.floor(r/(cpr||4)));
+    return str.length <= max ? str : str.slice(0,max-1)+"…";
+  };
+
+  layerGs.append("text")
+    .attr("text-anchor","middle")
+    .attr("dy",LAYER_R>22?"-0.15em":"0.35em")
+    .attr("fill","#0D1219")
+    .attr("font-family","'IBM Plex Sans',sans-serif").attr("font-weight","600")
+    .attr("font-size",Math.min(11,Math.max(6.5,LAYER_R/3.2))+"px")
+    .attr("pointer-events","none")
+    .text(d=>fitText(d.layer.name,LAYER_R,3.2));
+
+  layerGs.append("text")
+    .attr("text-anchor","middle").attr("dy","1.25em")
+    .attr("fill","#0D1219").attr("fill-opacity",.5)
+    .attr("font-family","'IBM Plex Mono',monospace")
+    .attr("font-size",Math.min(8,LAYER_R/4.5)+"px")
+    .attr("pointer-events","none")
+    .text(d=>LAYER_R>18?d.layer.companies.length+" cos":"");
+
+  centerG.append("circle")
+    .attr("r",AI_R*1.38).attr("fill","none")
+    .attr("stroke","#C9A05C").attr("stroke-width",1)
+    .attr("stroke-opacity",.18).attr("stroke-dasharray","4,4");
+  centerG.append("circle")
+    .attr("r",AI_R).attr("fill","#C9A05C").attr("fill-opacity",.12)
+    .attr("stroke","#C9A05C").attr("stroke-width",2)
+    .attr("stroke-dasharray","7,4").attr("filter","url(#ai-glow)");
+  centerG.append("text")
+    .attr("text-anchor","middle").attr("dy","0.35em")
+    .attr("fill","#C9A05C")
+    .attr("font-family","'Fraunces',serif").attr("font-weight","700")
+    .attr("font-size",AI_R*0.62+"px").attr("letter-spacing","0.05em")
+    .attr("pointer-events","none").text("AI");
+
+  centerG.style("opacity",0).transition().duration(500).style("opacity",1);
+  mainSpokes.transition().delay((d,i)=>200+i*55).duration(380).attr("stroke-opacity",.30);
+  layerGs.transition().delay((d,i)=>380+i*55).duration(340).ease(d3.easeCubicOut).style("opacity",1);
+
+  function toggle(idx){
+    if(activeIdx === idx){ collapse(); return; }
+    if(activeIdx !== null) collapse(false);
+    expand(idx);
+  }
+
+  function expand(idx){
+    activeIdx = idx;
+    const pos = positions[idx], layer = pos.layer, color = layer.color;
+
+    const hub = { x:pos.x, y:pos.y, fx:pos.x, fy:pos.y };
+    const coNodes = layer.companies.map(c => ({
+      ...c, color, layerRef:layer,
+      x:pos.x+(Math.random()-.5)*4, y:pos.y+(Math.random()-.5)*4,
+    }));
+    const links = coNodes.map((_,i)=>({source:0,target:i+1}));
+    const linkDist = Math.min(CO_EXP_R*3.8, D*0.14);
+    d3.forceSimulation([hub,...coNodes])
+      .force("link",d3.forceLink(links).distance(linkDist).strength(.7))
+      .force("charge",d3.forceManyBody().strength(-(CO_EXP_R*12)))
+      .force("collide",d3.forceCollide(CO_EXP_R+8))
+      .force("cx",d3.forceX(pos.x).strength(.06))
+      .force("cy",d3.forceY(pos.y).strength(.06))
+      .stop().tick(200);
+
+    const ex = W/2 - CO_EXP_R - 8, ey = H/2 - CO_EXP_R - 16;
+    coNodes.forEach(n => {
+      n.x = Math.max(-ex, Math.min(ex, n.x));
+      n.y = Math.max(-ey, Math.min(ey, n.y));
+    });
+
+    layerGs.transition("dim").duration(240).style("opacity",d=>d.idx===idx?1:.15);
+    mainSpokes.transition("dim").duration(240).attr("stroke-opacity",d=>d.idx===idx?.65:.06);
+    d3.select(layerGs.nodes()[idx]).select(".active-ring")
+      .transition("dim").duration(240).attr("stroke-opacity",.55);
+
+    expSpokesG.selectAll("*").remove();
+    expSpokesG.selectAll(".es").data(coNodes).enter()
+      .append("line")
+        .attr("x1",pos.x).attr("y1",pos.y)
+        .attr("x2",pos.x).attr("y2",pos.y)
+        .attr("stroke",color).attr("stroke-width",1.1).attr("stroke-opacity",.45)
+      .transition("exp").duration(380).delay((d,i)=>i*18).ease(d3.easeCubicOut)
+        .attr("x2",d=>d.x).attr("y2",d=>d.y);
+
+    expBubblesG.selectAll("*").remove();
+    const coGs = expBubblesG.selectAll(".ec").data(coNodes).enter()
+      .append("g")
+        .attr("transform",`translate(${pos.x},${pos.y}) scale(0)`)
+        .style("cursor","pointer")
+        .on("mouseover",function(e,d){
+          d3.select(this).raise()
+            .transition("hover").duration(140).ease(d3.easeCubicOut)
+            .attr("transform",`translate(${d.x},${d.y}) scale(1.7)`);
+        })
+        .on("mouseout",function(e,d){
+          d3.select(this)
+            .transition("hover").duration(180).ease(d3.easeCubicOut)
+            .attr("transform",`translate(${d.x},${d.y}) scale(1)`);
+        })
+        .on("click",(e,d)=>{ e.stopPropagation(); openModal(d, d.layerRef); });
+
+    coGs.append("circle")
+      .attr("r",CO_EXP_R)
+      .attr("fill",color).attr("fill-opacity",.88)
+      .attr("stroke","rgba(255,255,255,.18)").attr("stroke-width",1.5);
+
+    coGs.append("text")
+      .attr("text-anchor","middle").attr("dy","0.35em")
+      .attr("fill","#0D1219")
+      .attr("font-family","'IBM Plex Mono',monospace").attr("font-weight","600")
+      .attr("font-size",Math.min(9,CO_EXP_R/2.4)+"px")
+      .attr("pointer-events","none")
+      .text(d=>d.ticker==="Private"?"PRV":d.ticker);
+
+    coGs.append("text")
+      .attr("text-anchor","middle")
+      .attr("dy",CO_EXP_R+12+"px")
+      .attr("fill","#EDEAE1")
+      .attr("font-family","'IBM Plex Sans',sans-serif").attr("font-weight","500")
+      .attr("font-size","9px")
+      .attr("pointer-events","none")
+      .text(d=>d.name);
+
+    coGs.transition("exp").duration(400).delay((d,i)=>i*18).ease(d3.easeCubicOut)
+      .attr("transform",d=>`translate(${d.x},${d.y}) scale(1)`);
+  }
+
+  function collapse(animate = true){
+    if(activeIdx === null) return;
+    const idx = activeIdx;
+    activeIdx = null;
+    d3.select(layerGs.nodes()[idx]).select(".active-ring")
+      .transition("dim").duration(200).attr("stroke-opacity",0);
+    if(animate){
+      const pos = positions[idx];
+      expBubblesG.selectAll("g")
+        .transition("exp").duration(220).ease(d3.easeCubicIn)
+        .attr("transform",`translate(${pos.x},${pos.y}) scale(0)`)
+        .on("end",(d,i,nodes)=>{ if(i===nodes.length-1) expBubblesG.selectAll("*").remove(); });
+      expSpokesG.selectAll("line")
+        .transition("exp").duration(200).delay(80).attr("stroke-opacity",0)
+        .on("end",(d,i,nodes)=>{ if(i===nodes.length-1) expSpokesG.selectAll("*").remove(); });
+    } else {
+      expBubblesG.selectAll("*").remove();
+      expSpokesG.selectAll("*").remove();
+    }
+    layerGs.transition("dim").duration(220).style("opacity",1);
+    mainSpokes.transition("dim").duration(220).attr("stroke-opacity",.30);
+  }
+
+  svg.on("click", () => { if(activeIdx !== null) collapse(); });
+}
+
+/* build when scrolled into view; rebuild on resize (debounced) */
+const bubbleIO = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if(en.isIntersecting && !bubblesBuilt){
+      bubblesBuilt = true;
+      buildBubbles();
+      bubbleIO.disconnect();
+    }
+  });
+}, {threshold:.15});
+bubbleIO.observe(stage);
+
+let rT;
+addEventListener("resize", () => {
+  if(!bubblesBuilt) return;
+  clearTimeout(rT);
+  rT = setTimeout(buildBubbles, 250);
+});
+
+/* ═════════ Live prices ═════════ */
+fetch("./prices.json", {cache:"no-store"})
+  .then(r => r.ok ? r.json() : null)
+  .then(data => {
+    if(!data) return;
+    PRICES_DATA = data;
+    const meta = data._meta || {};
+    const refreshEl = $("#lastRefresh");
+    if(refreshEl && meta.asOf){
+      refreshEl.textContent = "Last refreshed: " + meta.asOf + " close (weekly, US market only)";
+      refreshEl.classList.add("live");
+    }
+  })
+  .catch(() => { /* prices.json missing or unreachable — modal shows "no data" per ticker */ });
+</script>
 </body>
 </html>

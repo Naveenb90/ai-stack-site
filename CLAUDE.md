@@ -5,8 +5,8 @@ This repo holds a reference map of public (and a few private) companies across t
 ## What's here
 
 ```
-index.html                    # Main reference page — list view, 10 layers + Notable Stocks
-ai-stack-bubbles.html                # Companion page — interactive drill-down bubble chart
+index.html                    # Main page — hero, search/filters, layer list, embedded bubble map
+ai-stack-bubbles.html                # Standalone full-screen companion — same bubble map, no price data
 prices.json                          # Shared price data, read by index.html at load time
 scripts/update_prices.py             # Pulls weekly data (Yahoo primary, Alpaca fallback), overwrites prices.json
 .github/workflows/update-prices.yml  # Runs update_prices.py every Friday after close
@@ -14,9 +14,18 @@ scripts/update_prices.py             # Pulls weekly data (Yahoo primary, Alpaca 
 
 `ai-stack-bubbles.html` currently does **not** read `prices.json` — it's name/ticker/role only, no price data wired in. If that's wanted later, mirror the fetch logic from `index.html`'s `<script>` block.
 
-## UI: click a ticker for detail, nothing shown inline
+## UI: index.html is one data-driven page, not static HTML chips
 
-`index.html` chips show only name/role/ticker — no inline price or % badges. `PRICES_DATA` is fetched once on page load and kept in memory; clicking (or Enter/Space on) a chip opens a modal that reads that ticker's entry straight out of `PRICES_DATA` and renders price, a 60-day sparkline, 52W high/low with % from current, YTD %, last-20-days %, and a range slider — all computed client-side, no network call at click time. A `data-market="private"`/`"non-us"` chip, or a US ticker missing from `prices.json`, opens the modal with an explanatory empty state instead.
+`index.html` was reworked from a plain static list into a single page built from an in-page `const LAYERS = [...]` array (each layer: id/num/name/tag/color/desc/companies, each company: name/ticker/role/market). Everything renders from that one array:
+
+- **Hero** — animated stat counters (layers/companies/tracked tickers), a live "Last refreshed" line populated from `prices.json`'s `_meta.asOf`.
+- **Sticky toolbar** — a search box (matches name + ticker), an All/Public/Private segmented filter, and layer-pill quick filters. Purely client-side, `applyFilters()` in the script.
+- **Sticky rail nav** — jump links to each layer, active state via `IntersectionObserver` scrollspy.
+- **Layer list** — same 10 layers + Notable Stocks as before, rendered as `.card` elements instead of the old static `.chip` divs.
+- **Embedded bubble map** (`#bubbles`, D3 via CDN) — the constellation view, built from the *same* `LAYERS` array (`buildBubbles()`), so the list and bubble views on this page can't drift from each other — they share one data source.
+- **Modal** — click (or Enter/Space on) a card, or a company bubble in the expanded constellation, and `openModal(c, layer)` opens one modal combining both: a position line (`Layer X — Name · upstream/downstream · Public/Private`) *and*, for public US tickers, the full price detail — price, 60-day sparkline, 52W high/low with % from current, YTD %, last-20-days %, and a range slider, read straight out of `PRICES_DATA` (fetched once on page load). A `market:"private"`/`"non-us"` company, or a US ticker missing from `prices.json`, gets an explanatory empty state instead of the price block.
+
+`ai-stack-bubbles.html` is unchanged — a separate standalone page with its own copy of the same roster in a JS array, kept for anyone who wants a link straight to just the bubble chart (linked from `index.html`'s hero and footer).
 
 ## The layer model
 
@@ -36,7 +45,7 @@ Both pages share the same 10-layer structure, ordered upstream → downstream, p
 
 If you add a company, decide which layer it actually belongs to before defaulting to Notable Stocks — that section is for genuine "doesn't fit" cases, not a dumping ground.
 
-**When adding a new layer:** update it in both `index.html` (list) and `ai-stack-bubbles.html` (bubbles) — they're maintained as two independent copies of the same data, not a shared source. There's real drift risk here; see "Known limitations" below.
+**When adding a new layer:** update the `LAYERS` array in `index.html` — its list view and embedded bubble view both read from it, so one edit covers both. Then separately update `ai-stack-bubbles.html`'s own array too — that page is still a fully independent copy of the same data, not a shared source. There's real drift risk between those two *files*; see "Known limitations" below.
 
 ## Data model: `prices.json`
 
@@ -87,13 +96,14 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 ## Adding a ticker to the weekly pull
 
 1. Add it to the `TICKERS` list in `scripts/update_prices.py` (US-listed only).
-2. In `index.html`, make sure its chip has `data-ticker="SYMBOL"` and no `data-market` attribute.
+2. In `index.html`'s `LAYERS` array, add the company with `ticker:"SYMBOL"` and `market:null` (omit/null `market` for a pullable US ticker — only set it to `"private"` or `"non-us"` for companies the pipeline can't fetch). Add the same entry to `ai-stack-bubbles.html`'s own array too (see "known limitations" — no shared source between the two files).
 3. It'll populate automatically on the next scheduled or manual run — no other code changes needed.
 
 ## Known limitations / things not to "fix" without thinking first
 
 - **No live prices.** Everything is a weekly snapshot. Don't add real-time polling without discussing rate limits and whether it's actually wanted — this was an explicit design choice (see conversation history / commit messages), not an oversight.
-- **Two HTML files, no shared data source.** Layer/company data is duplicated between `index.html` and `ai-stack-bubbles.html`. If you're changing the roster of companies, update both or note that you didn't.
+- **Two HTML files, no shared data source between them.** `index.html`'s list and its own embedded bubble view now share one `LAYERS` array *within that file*, but `ai-stack-bubbles.html` is still a fully separate file with its own independent copy of the roster. If you're changing the roster of companies, update both files or note that you didn't.
+- **D3 loads from a CDN.** Both `index.html`'s embedded bubble map and `ai-stack-bubbles.html` load `d3.min.js` from `cdnjs.cloudflare.com` at runtime — fine for a public GitHub Pages site, but worth knowing if this ever needs to run somewhere with a stricter content-security policy.
 - **Manual, human-verified seed data.** The current values in `prices.json` were originally researched and entered by hand before the automated pipeline existed. Once the Action has run at least once successfully, treat the file as machine-owned — don't hand-edit it and expect it to survive the next run.
 - **Currency:** everything is USD except Neo Performance Materials (NEO), which is CAD and TSX-listed — it's in the permanent-no-data bucket precisely because of this, not a bug.
 - **Yahoo's chart endpoint is unofficial/undocumented.** It's been reliable in practice but can change shape or start blocking without notice — that's exactly why the Alpaca fallback exists. If Yahoo ever breaks outright, the Alpaca path (with valid secrets) is the stopgap, not a full replacement at current free-tier limits for this roster size.

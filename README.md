@@ -4,8 +4,8 @@ A reference map of public (and a few private) companies across the AI supply cha
 
 ## What's here
 
-- `index.html` — main reference page / site homepage (list view, 10 layers + Notable Stocks). Chips show only the company and ticker; clicking one opens a detail card (price, 60-day sparkline, 52-week range, YTD %, last-20-days %) read from `prices.json`. (Renamed from `ai-stack-map.html` so GitHub Pages serves it at the site root.)
-- `ai-stack-bubbles.html` — companion interactive drill-down bubble chart (name/ticker/role only — no price data wired in).
+- `index.html` — main reference page / site homepage. Hero with animated stat counters and a live "last refreshed" line, a sticky search + public/private filter + layer-pill toolbar, a scrolling ticker tape, and a sticky rail nav, followed by the 10-layer + Notable Stocks list. Below that, an embedded bubble/constellation view of the same roster (D3, click a layer to expand its companies). Company cards are rendered from a single in-page `LAYERS` data array — clicking one opens a modal combining its position in the stack (layer, upstream/downstream, public/private) with its live price detail (60-day sparkline, 52-week range, YTD %, last-20-days %) read from `prices.json`. (Reworked from a plain list page by merging in a separate field-guide draft's UI — see "Notes on this cut" below. Originally renamed from `ai-stack-map.html` so GitHub Pages serves it at the site root.)
+- `ai-stack-bubbles.html` — standalone full-screen companion bubble chart (name/ticker/role only — no price data wired in). Kept alongside the bubble view now embedded in `index.html` for anyone who wants to link directly to just the chart.
 - `prices.json` — shared price data, machine-owned once the Action has run.
 - `scripts/update_prices.py` — pulls weekly data (Yahoo Finance primary, Alpaca fallback) and rewrites `prices.json`.
 - `.github/workflows/update-prices.yml` — runs the script every Friday ~21:15 UTC (after US market close), and can be triggered manually from the Actions tab.
@@ -24,4 +24,6 @@ A reference map of public (and a few private) companies across the AI supply cha
 
 ## Notes on this cut
 
-Assembled from the latest version of each file: an older, superseded duplicate of the market map page (pre back-button/live-metrics update) and a stale copy of the bubble map (missing the mobile back button) were dropped in favor of the newer content, and the market map was renamed `ai-stack-map.html` → `index.html` to serve as the GitHub Pages homepage. A separate self-contained "field guide" draft called `index.html` found alongside these files was left out entirely — `CLAUDE.md`'s own project notes describe this repo as just the two pages above, and don't mention it.
+Assembled from the latest version of each file: an older, superseded duplicate of the market map page (pre back-button/live-metrics update) and a stale copy of the bubble map (missing the mobile back button) were dropped in favor of the newer content, and the market map was renamed `ai-stack-map.html` → `index.html` to serve as the GitHub Pages homepage.
+
+A separate self-contained "field guide" draft (`index_2.html` in a later pass) — hero, animated stats, search/filter toolbar, layer-pill nav, ticker tape, and an embedded D3 bubble map, but with no price data wired in and a slightly stale company roster — was reworked into `index.html`: its UI chrome was merged onto the live page's data (91 companies, current tickers) and its price/sparkline modal, producing one page with both the list and bubble views plus live prices. The draft file itself was then retired.
