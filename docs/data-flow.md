@@ -1,6 +1,6 @@
-# Data Flow: Price + SEC Filings Pipelines
+# Data Flow: Price Pipeline + SEC Filings Updater
 
-Two independent pipelines feed the site: a weekly price pull (below) and a monthly SEC filings pull ([see that section](#data-flow-sec-filings-pipeline-monthly) further down). They run on separate schedules, write separate JSON files, and neither depends on the other.
+Two independent data feeds feed the site: an automated weekly price pull (below) and a manual, developer-run SEC filings updater ([see that section](#data-flow-sec-filings-updater-manual) further down). They write separate JSON files and neither depends on the other. Only the price pull runs on a schedule — the SEC filings updater is deliberately not a GitHub Action; see that section for why.
 
 ## Weekly Price Pipeline
 
@@ -75,20 +75,14 @@ Holiday handling is approximate — the date logic only knows Mon–Fri, not an 
 
 `index.html` fetches `prices.json` once per page load (`cache: 'no-store'`) and keeps it in memory as `PRICES_DATA`. Nothing price-related is rendered until a company card is clicked — in the layer list, or a company bubble in the expanded constellation view — at which point the modal reads the ticker's entry directly out of `PRICES_DATA` and computes price, 52W/YTD/20-day percentages, and the sparkline/range-slider positions client-side, alongside the card's position in the stack (layer, upstream/downstream, public/private). `ai-stack-bubbles.html` does not participate in this flow at all (see [data-architecture.md](./data-architecture.md)).
 
-<a id="data-flow-sec-filings-pipeline-monthly"></a>
-## SEC Filings Pipeline (Monthly)
+<a id="data-flow-sec-filings-updater-manual"></a>
+## SEC Filings Updater (Manual)
 
 ### End-to-end flow
 
 ```
-GitHub Actions schedule (1st of month, 06:00 UTC)  ──or──  manual "Run workflow"
-                │
-                ▼
-  .github/workflows/update-sec-filings.yml
-                │  checks out repo, sets up Python 3.12,
-                │  pip install requests
-                ▼
-      scripts/fetch_sec_filings.py
+Developer runs, from their own machine:
+      $ python scripts/fetch_sec_filings.py
                 │
                 ├─ once: GET sec.gov/files/company_tickers.json
                 │        → {ticker: (CIK, company name)} for the whole market
@@ -105,16 +99,14 @@ GitHub Actions schedule (1st of month, 06:00 UTC)  ──or──  manual "Run w
                       filing's accession number
                 ▼
    writes sec_filings.json (indent=2), stderr summary + any tickers with
-   no CIK found or no annual filing found
+   no CIK found or no annual filing found, then prints a reminder that
+   it did NOT commit or push anything
                 ▼
-   git-auto-commit-action (stefanzweifel/git-auto-commit-action@v5)
-                │  commits sec_filings.json if it changed
-                │  message: "Monthly SEC filing info update"
-                ▼
-        pushed straight to the default branch (main)
+        developer reviews `git diff sec_filings.json`, then by hand:
+        git add sec_filings.json && git commit && git push
                 │
                 ▼
-        index.html  (next page load)
+        index.html  (next page load, once pushed)
                 │  fetch('./sec_filings.json', {cache: 'no-store'}) once,
                 │  stored in SEC_DATA — no further network calls
                 ▼
@@ -123,6 +115,10 @@ GitHub Actions schedule (1st of month, 06:00 UTC)  ──or──  manual "Run w
         data at all — it's built straight from the ticker
 ```
 
+### Why this one isn't a GitHub Action
+
+The price pipeline runs unattended on a schedule because prices genuinely change every trading day. Annual reports don't — a 10-K posts once a year per company, so there's no real freshness lost by refreshing this by hand every so often (quarterly is plenty) rather than running an automated job every week or month for a file that usually wouldn't have changed anyway. Keeping it manual also means one fewer scheduled job with `contents: write` permission running unattended against the repo. If that trade-off ever stops making sense, `.github/workflows/update-prices.yml` is a ready-made template — swap in `fetch_sec_filings.py` and a slower cron.
+
 ### Data source: SEC EDGAR only
 
 Two of SEC EDGAR's own free, keyless JSON endpoints cover this entirely — no API key, and (per SEC's guidance) a descriptive `User-Agent` header is enough to stay in good standing:
@@ -130,15 +126,13 @@ Two of SEC EDGAR's own free, keyless JSON endpoints cover this entirely — no A
 - `https://www.sec.gov/files/company_tickers.json` — a single bulk file mapping every ticker SEC tracks to its CIK (Central Index Key) and company name. Fetched once per run, not once per ticker.
 - `https://data.sec.gov/submissions/CIK##########.json` — one company's full filing history. The script only reads the inline `filings.recent` arrays (parallel arrays: `form`, `filingDate`, `accessionNumber`, `primaryDocument`, all indexed together) and scans forward for the first annual-report-type entry.
 
-Why monthly instead of weekly: 10-Ks are annual, 10-Qs quarterly — nothing in that cadence needs a weekly check. A monthly run comfortably catches a new annual filing within a few weeks of it posting.
-
 Why 20-F/40-F alongside 10-K: several tickers in the roster are foreign private issuers that list via ADR/ADS on a US exchange (TSMC, ASML, Arm, SAP, Nebius) — they file `20-F` (or, for a Canadian filer, `40-F`) as their annual report instead of `10-K`. Scanning for any of `{10-K, 10-K405, 20-F, 40-F}` in one pass, rather than assuming `10-K`, means the script doesn't need a separate hardcoded list of "which tickers are foreign."
 
 ### Failure behavior
 
 - A missing CIK (ticker not found in SEC's bulk map) is logged (`No SEC CIK found for: ...`) and that ticker is simply left out of `sec_filings.json` for the run — doesn't stop the rest.
 - A CIK with no matching annual-report form in its recent filing window is logged separately (`No annual report found in range for: ...`) — expected to be rare to never in practice, given the window's size.
-- `git-auto-commit-action` only commits when `sec_filings.json` actually changed, same as the price pipeline.
+- Nothing here auto-commits. If the run fails partway, `sec_filings.json` on disk simply isn't written (the script writes it once, at the end, from the fully-built `result` dict) — rerun the script rather than trying to patch a partial file.
 
 ### Consumption on the page
 
@@ -146,4 +140,4 @@ Why 20-F/40-F alongside 10-K: several tickers in the roster are foreign private 
 
 ## Required secrets
 
-None, for either pipeline. Prices run entirely off Yahoo Finance's free, keyless endpoint; SEC filings run entirely off SEC EDGAR's free, keyless JSON endpoints. No repo secrets are read anywhere in `scripts/update_prices.py`, `scripts/fetch_sec_filings.py`, or either workflow file.
+None, for either data source. Prices run entirely off Yahoo Finance's free, keyless endpoint; SEC filings run entirely off SEC EDGAR's free, keyless JSON endpoints. No repo secrets are read anywhere in `scripts/update_prices.py`, `scripts/fetch_sec_filings.py`, or `update-prices.yml` (the only workflow file that exists — the SEC updater has none).

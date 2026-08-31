@@ -1,6 +1,6 @@
 # AI Stack — Project Notes
 
-This repo holds a reference map of public (and a few private) companies across the AI supply chain, plus a weekly price-refresh pipeline and a monthly SEC-filings-refresh pipeline. Two viewer pages, two shared data files, two automated jobs.
+This repo holds a reference map of public (and a few private) companies across the AI supply chain, plus a weekly price-refresh pipeline (automated) and an SEC-filings updater (manual, developer-run). Two viewer pages, two shared data files, one automated job.
 
 ## What's here
 
@@ -10,10 +10,11 @@ ai-stack-bubbles.html             # Standalone full-screen companion — same bu
 prices.json                       # Shared price data, read by index.html at load time
 sec_filings.json                  # Shared SEC filing data, read by index.html at load time
 scripts/update_prices.py          # Pulls weekly data from Yahoo Finance, overwrites prices.json
-scripts/fetch_sec_filings.py      # Pulls monthly filing data from SEC EDGAR, overwrites sec_filings.json
+scripts/fetch_sec_filings.py      # Pulls filing data from SEC EDGAR, overwrites sec_filings.json — run by hand, not scheduled
 .github/workflows/update-prices.yml        # Runs update_prices.py every Friday after close
-.github/workflows/update-sec-filings.yml   # Runs fetch_sec_filings.py monthly (1st, 06:00 UTC)
 ```
+
+There is deliberately no workflow file for `fetch_sec_filings.py` — see "Updating SEC filing info" below.
 
 `ai-stack-bubbles.html` currently does **not** read `prices.json` or `sec_filings.json` — it's name/ticker/role only, no price or SEC data wired in. If that's wanted later, mirror the fetch logic from `index.html`'s `<script>` block.
 
@@ -113,19 +114,30 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 - Holiday handling is **approximate** — Mon–Fri only, no actual market-holiday calendar. A manual run on a holiday requests that date but naturally falls back to the last real session anyway (`fetch_yahoo_bars` always takes the last *available* bar, not a specific date match).
 - `_meta.asOf` in the output reflects the *actual* session date the data came from, not just the requested date, so the page's "Last refreshed" line stays honest if the two ever disagree.
 
-## The monthly SEC filings pipeline
+## Updating SEC filing info (manual — no GitHub Action)
 
-- `scripts/fetch_sec_filings.py` runs on the **1st of every month at 06:00 UTC** via its own GitHub Action, and can also be triggered manually from the Actions tab. Annual reports don't need weekly checking the way prices do, hence the slower cadence.
+Unlike prices, SEC filing info is **not** refreshed on a schedule. A developer runs the script locally and pushes the result themselves:
+
+```
+python scripts/fetch_sec_filings.py
+git diff sec_filings.json          # sanity-check before committing
+git add sec_filings.json
+git commit -m "Update SEC filing info"
+git push
+```
+
 - **SEC EDGAR is the sole data source**, via two of its free, keyless JSON endpoints: `https://www.sec.gov/files/company_tickers.json` (bulk ticker→CIK map, fetched once per run) and `https://data.sec.gov/submissions/CIK##########.json` per company (its filing history, scanned for the most recent `10-K`/`10-K405`/`20-F`/`40-F`). Both require a descriptive `User-Agent` header — see `SEC_HEADERS` in the script — SEC will reject requests without one.
-- **Ticker list is imported, not duplicated.** `fetch_sec_filings.py` does `from update_prices import TICKERS` rather than keeping its own copy — these are two Python files in the same repo (not the two independent HTML rosters), so sharing the list here carries no real drift risk and one edit to `update_prices.py`'s `TICKERS` covers both pipelines.
+- **Why manual, not a scheduled Action:** annual reports don't need weekly (or even monthly) automated checking the way prices do, and this keeps the repo down to one automated job instead of two. Re-run it every so often — quarterly is plenty — or right after you know a tracked company has filed a new 10-K/20-F/40-F.
+- **Ticker list is imported, not duplicated.** `fetch_sec_filings.py` does `from update_prices import TICKERS` rather than keeping its own copy — these are two Python files in the same repo (not the two independent HTML rosters), so sharing the list here carries no real drift risk and one edit to `update_prices.py`'s `TICKERS` covers both.
 - **Amendments are skipped on purpose.** If a company's most recent annual-report-type filing is a `10-K/A`, the script keeps looking for the original `10-K` instead — always link to the primary filing, not a correction, so this doesn't have to reason about what the amendment changed.
 - A ticker can end up missing from `sec_filings.json` for two different reasons, both logged to stderr rather than failing the run: no CIK found in SEC's bulk ticker map (`No SEC CIK found for: ...`), or a CIK was found but no annual-report filing type showed up in its recent filing history (`No annual report found in range for: ...`, essentially never expected in practice — SEC's "recent" window covers far more than a year of filings for every company on this page).
+- If you'd rather have this run on a schedule after all, adding a workflow modeled on `.github/workflows/update-prices.yml` (swap in `fetch_sec_filings.py` and a slower cron, e.g. monthly) is a small, self-contained change — the script itself doesn't need to change either way.
 
 ## Adding a ticker
 
 1. Add it to the `TICKERS` list in `scripts/update_prices.py` (US-listed only) — `fetch_sec_filings.py` picks it up automatically from the same list, no separate step needed there.
 2. In `index.html`'s `LAYERS` array, add the company with `ticker:"SYMBOL"` and `market:null` (omit/null `market` for a pullable US ticker — only set it to `"private"` or `"non-us"` for companies neither pipeline can fetch). Add the same entry to `ai-stack-bubbles.html`'s own array too (see "known limitations" — no shared source between the two files).
-3. It'll populate automatically on the next scheduled or manual run of each workflow — no other code changes needed.
+3. It'll populate in `prices.json` automatically on the next scheduled or manual price-workflow run — no other code changes needed there. It won't appear in `sec_filings.json` until someone next runs `fetch_sec_filings.py` by hand (see above).
 
 ## Known limitations / things not to "fix" without thinking first
 
@@ -136,5 +148,5 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 - **Currency:** everything is USD except Neo Performance Materials (NEO), which is CAD and TSX-listed — it's in the permanent-no-data bucket precisely because of this, not a bug.
 - **Yahoo's chart endpoint is unofficial/undocumented, and it's now the only data source.** It's been reliable in practice but can change shape or start blocking without notice. There is currently no fallback (Alpaca was removed as unused — see git log / README "Notes on this cut"). If Yahoo ever breaks outright, `missing` tickers just get logged and left out of `prices.json` for that run rather than failing the whole pipeline — check `docs/data-flow.md` before deciding whether a fallback is worth re-adding.
 - **SEC EDGAR's bulk JSON endpoints are undocumented in the same sense Yahoo's chart endpoint is** — free and keyless, but not a formally versioned public API. `data.sec.gov`'s `submissions` response can be large for companies with a long filing history; the script only reads the inline `filings.recent` window (up to ~1000 most-recent filings), not the older paginated `filings.files` history — fine for finding the *latest* annual report, not a tool for a full filing archive.
-- **`sec_filings.json` becomes machine-owned once its Action has run successfully at least once**, same as `prices.json` — don't hand-edit it afterward and expect it to survive the next run. Unlike `prices.json`, this file started as an empty seed (no hand-verified data) since the modal has a working fallback (the generic EDGAR link) with no data file at all.
+- **`sec_filings.json` is refreshed manually, not by a GitHub Action.** A developer runs `fetch_sec_filings.py` locally and commits/pushes the result themselves — there is no scheduled workflow for it (unlike `prices.json`). It can go stale between manual runs; that's expected, not a bug. Unlike `prices.json`, this file started as an empty seed (no hand-verified data) since the modal has a working fallback (the generic EDGAR link) with no data file at all.
 - **This is a reference/illustrative tool, not investment advice.** Keep that framing in any copy changes — it's stated explicitly in the page footer and should stay there.

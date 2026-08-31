@@ -1,8 +1,16 @@
 #!/usr/bin/env python3
 """
-Periodic pull: each US-listed ticker's most recent annual report on file
-with the SEC (10-K for domestic filers, 20-F/40-F for foreign private
-issuers), plus a direct link to that filing. Writes sec_filings.json.
+Run this by hand, from your own machine, whenever you want to refresh SEC
+filing info: `python scripts/fetch_sec_filings.py`, then commit and push
+the resulting sec_filings.json yourself. Deliberately NOT wired into a
+GitHub Action — annual reports change rarely enough that a developer
+running this occasionally and pushing the result is simpler than standing
+up (and trusting) a second scheduled job on GitHub's servers. See
+"Updating SEC filing info" in CLAUDE.md for the exact steps.
+
+Pulls each US-listed ticker's most recent annual report on file with the
+SEC (10-K for domestic filers, 20-F/40-F for foreign private issuers),
+plus a direct link to that filing. Writes sec_filings.json.
 
 Data source: SEC EDGAR's public JSON APIs — no API key required.
   1. https://www.sec.gov/files/company_tickers.json   (ticker -> CIK)
@@ -16,9 +24,7 @@ cover both.
 This mirrors update_prices.py's shape on purpose (same TICKERS list,
 imported directly rather than duplicated — these are two Python files in
 the same repo, not the two independent HTML rosters, so there's no drift
-risk in sharing this one). Unlike the weekly price pull, annual reports
-don't need weekly refreshing — this is meant to run monthly (see
-.github/workflows/update-sec-filings.yml).
+risk in sharing this one).
 """
 
 import json
@@ -155,7 +161,8 @@ def main():
             "Most recent 10-K (domestic filers) or 20-F/40-F (foreign "
             "private issuers) on file per ticker, as of this run. "
             "Amendments (…/A) are skipped in favor of the original filing. "
-            "Runs monthly — annual reports don't need weekly refreshing."
+            "Run manually by a developer and committed by hand — not on "
+            "an automated schedule (see the module docstring)."
         ),
     }
 
@@ -170,6 +177,11 @@ def main():
         print(f"No SEC CIK found for: {', '.join(no_cik)}", file=sys.stderr)
     if no_annual_filing:
         print(f"No annual report found in range for: {', '.join(no_annual_filing)}", file=sys.stderr)
+    print(
+        "\nNext: review the diff, then `git add sec_filings.json && git commit "
+        "&& git push` — this script does not commit or push anything itself.",
+        file=sys.stderr,
+    )
 
 
 if __name__ == "__main__":

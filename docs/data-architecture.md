@@ -2,14 +2,14 @@
 
 ## Overview
 
-The site is two static HTML pages sharing two JSON data files. There is no backend and no database — `prices.json` and `sec_filings.json` *are* the database, both checked into git and rewritten in place by their own scheduled job.
+The site is two static HTML pages sharing two JSON data files. There is no backend and no database — `prices.json` and `sec_filings.json` *are* the database, both checked into git. `prices.json` is rewritten in place by a scheduled GitHub Action; `sec_filings.json` is rewritten by a developer running a script locally and pushing the result by hand — no Action for that one.
 
 ```
 ┌───────────────────────────┐        ┌──────────────────────┐
 │        index.html          │──────▶│     prices.json        │
 │  one LAYERS array drives:  │  GET  │  (static JSON, in repo)│
 │  - layer list (cards)      │       └───────────▲────────────┘
-│  - embedded bubble map     │                    │ overwrites
+│  - embedded bubble map     │                    │ overwrites (scheduled)
 │  (fetches at load,         │        ┌──────────┴────────────┐
 │   renders on click)        │        │ scripts/update_prices.py│
 │                            │──────▶│ (Yahoo Finance only)     │
@@ -19,12 +19,12 @@ The site is two static HTML pages sharing two JSON data files. There is no backe
 │                            │──────▶│   sec_filings.json      │
 │                            │  GET  │  (static JSON, in repo)│
 └───────────────────────────┘       └───────────▲────────────┘
-┌─────────────────────┐                          │ overwrites
-│ ai-stack-bubbles.html│              ┌──────────┴──────────────┐
-│ standalone full-screen│              │ scripts/fetch_sec_filings│
-│ bubble map, own copy  │              │ .py (SEC EDGAR only)     │
-│ of the roster — no    │              └─────────────────────────┘
-│ price/SEC fetch        │
+┌─────────────────────┐                          │ overwrites (MANUAL —
+│ ai-stack-bubbles.html│              ┌──────────┴──────────┐  dev runs, pushes)
+│ standalone full-screen│              │ scripts/fetch_sec_   │
+│ bubble map, own copy  │              │ filings.py (SEC EDGAR│
+│ of the roster — no    │              │ only, no GH Action)  │
+│ price/SEC fetch        │              └──────────────────────┘
 └─────────────────────┘
 ```
 
@@ -127,6 +127,6 @@ Both HTML pages share the same layer structure, ordered upstream → downstream,
 - **Currency:** everything is USD except Neo Performance Materials (NEO, CAD/TSX) — which is in the permanent-no-data bucket specifically because it's foreign-listed, not because of the currency itself.
 - **Holiday handling is approximate** (Mon–Fri only, no real market-holiday calendar) — see [data-flow.md](./data-flow.md) for how the script compensates.
 - **Yahoo's chart endpoint is unofficial/undocumented, and it's the only data source (no fallback).** It's free and reliable in practice, but can change shape or start blocking without notice — see [data-flow.md](./data-flow.md) for what happens to affected tickers if it does.
-- **SEC filing info refreshes monthly, not weekly** — a deliberate cadence choice (annual reports don't change often), not an oversight.
-- **`sec_filings.json` started as an empty seed file**, unlike `prices.json`'s hand-verified seed — the modal has a working fallback (the generic EDGAR link, built from the ticker alone) even with zero rows in this file, so there was no need to hand-populate it before the pipeline's first run.
+- **SEC filing info is refreshed manually, not by a scheduled Action** — a deliberate choice (annual reports change rarely; one fewer unattended job with write access), not an oversight. See `docs/data-flow.md`'s "Why this one isn't a GitHub Action" for the reasoning, and CLAUDE.md's "Updating SEC filing info" for the exact commands. It can go stale between manual runs — that's expected.
+- **`sec_filings.json` started as an empty seed file**, unlike `prices.json`'s hand-verified seed — the modal has a working fallback (the generic EDGAR link, built from the ticker alone) even with zero rows in this file, so there was no need to hand-populate it before someone runs the script for the first time.
 - This is a reference/illustrative tool, not investment advice — keep that framing in any copy changes; it's stated in the page footer.
