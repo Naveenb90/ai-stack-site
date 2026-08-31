@@ -50,7 +50,7 @@ TICKERS = [
     "CSCO", "CIEN", "APH", "SMTC",
     "MU", "SNDK", "WDC", "STX", "P",
     "MSFT", "GOOGL", "META", "PLTR",
-    "AMZN", "ORCL", "CRWV", "NBIS", "APLD", "IREN", "WULF", "CIFR", "HUT",
+    "AMZN", "ORCL", "CRWV", "NBIS", "WYFI", "APLD", "IREN", "WULF", "CIFR", "HUT",
     "GLXY", "EQIX", "DLR",
     "CRWD", "PANW", "NET", "ZS", "FTNT", "DDOG",
     "VRT", "ETN", "GEV", "CEG", "VST", "PWR", "NVT", "NEE", "TLN", "OKLO", "BE",
