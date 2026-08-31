@@ -1,18 +1,21 @@
 # AI Stack — Project Notes
 
-This repo holds a reference map of public (and a few private) companies across the AI supply chain, plus a weekly price-refresh pipeline. Two viewer pages, one shared data file, one automated job.
+This repo holds a reference map of public (and a few private) companies across the AI supply chain, plus a weekly price-refresh pipeline and a monthly SEC-filings-refresh pipeline. Two viewer pages, two shared data files, two automated jobs.
 
 ## What's here
 
 ```
-index.html                    # Main page — hero, search/filters, layer list, embedded bubble map
-ai-stack-bubbles.html                # Standalone full-screen companion — same bubble map, no price data
-prices.json                          # Shared price data, read by index.html at load time
-scripts/update_prices.py             # Pulls weekly data from Yahoo Finance, overwrites prices.json
-.github/workflows/update-prices.yml  # Runs update_prices.py every Friday after close
+index.html                       # Main page — hero, search/filters, layer list, embedded bubble map
+ai-stack-bubbles.html             # Standalone full-screen companion — same bubble map, no price/SEC data
+prices.json                       # Shared price data, read by index.html at load time
+sec_filings.json                  # Shared SEC filing data, read by index.html at load time
+scripts/update_prices.py          # Pulls weekly data from Yahoo Finance, overwrites prices.json
+scripts/fetch_sec_filings.py      # Pulls monthly filing data from SEC EDGAR, overwrites sec_filings.json
+.github/workflows/update-prices.yml        # Runs update_prices.py every Friday after close
+.github/workflows/update-sec-filings.yml   # Runs fetch_sec_filings.py monthly (1st, 06:00 UTC)
 ```
 
-`ai-stack-bubbles.html` currently does **not** read `prices.json` — it's name/ticker/role only, no price data wired in. If that's wanted later, mirror the fetch logic from `index.html`'s `<script>` block.
+`ai-stack-bubbles.html` currently does **not** read `prices.json` or `sec_filings.json` — it's name/ticker/role only, no price or SEC data wired in. If that's wanted later, mirror the fetch logic from `index.html`'s `<script>` block.
 
 ## UI: index.html is one data-driven page, not static HTML chips
 
@@ -23,7 +26,7 @@ scripts/update_prices.py             # Pulls weekly data from Yahoo Finance, ove
 - **Sticky rail nav** — jump links to each layer, active state via `IntersectionObserver` scrollspy.
 - **Layer list** — same 10 layers + Notable Stocks as before, rendered as `.card` elements instead of the old static `.chip` divs.
 - **Embedded bubble map** (`#bubbles`, D3 via CDN) — the constellation view, built from the *same* `LAYERS` array (`buildBubbles()`), so the list and bubble views on this page can't drift from each other — they share one data source.
-- **Modal** — click (or Enter/Space on) a card, or a company bubble in the expanded constellation, and `openModal(c, layer)` opens one modal combining both: a position line (`Layer X — Name · upstream/downstream · Public/Private`) *and*, for public US tickers, the full price detail — price, 60-day sparkline, 52W high/low with % from current, YTD %, last-20-days %, and a range slider, read straight out of `PRICES_DATA` (fetched once on page load). A `market:"private"`/`"non-us"` company, or a US ticker missing from `prices.json`, gets an explanatory empty state instead of the price block.
+- **Modal** — click (or Enter/Space on) a card, or a company bubble in the expanded constellation, and `openModal(c, layer)` opens one modal combining three things: a position line (`Layer X — Name · upstream/downstream · Public/Private`); for public US tickers, the full price detail — price, 60-day sparkline, 52W high/low with % from current, YTD %, last-20-days %, and a range slider, read straight out of `PRICES_DATA` (fetched once on page load); and, also for public US tickers, an SEC filings section — a generic "All filings ↗" link to the company's EDGAR filings list (built directly from the ticker, no data dependency) plus, once `SEC_DATA` has an entry for it, a "Latest 10-K/20-F/40-F — filed *date*" line linking straight to that filing. A `market:"private"`/`"non-us"` company, or a US ticker missing from `prices.json`, gets an explanatory empty state instead of the price block; the SEC section is hidden entirely for `market:"private"`/`"non-us"` companies (no US SEC filings to link to), and shows a "pending" message in place of the latest-filing line for any ticker not yet in `sec_filings.json`.
 
 `ai-stack-bubbles.html` is unchanged — a separate standalone page with its own copy of the same roster in a JS array, kept for anyone who wants a link straight to just the bubble chart (linked from `index.html`'s hero and footer).
 
@@ -83,6 +86,25 @@ Two different reasons a chip's modal might not show stats:
 
 If you add a new company to the page, decide which bucket it's in and mark it accordingly — don't leave a fetchable US ticker without a `data-ticker` attribute, and don't add a foreign/private one without `data-market`.
 
+## Data model: `sec_filings.json`
+
+```json
+{
+  "TICKER": {
+    "cik": "0000320193",
+    "companyName": "Apple Inc.",
+    "formType": "10-K",
+    "filingDate": "2025-10-31",
+    "filingUrl": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/0000320193-25-000079-index.htm"
+  }
+}
+```
+
+- Same eligibility as `prices.json`: only tickers with `market:null` are looked up. `market:"private"`/`"non-us"` companies are skipped — no SEC filings to find.
+- `formType` is one of `10-K`, `10-K405`, `20-F`, or `40-F` — whichever annual-report type that filer actually uses (foreign private issuers like TSMC, ASML, Arm, SAP, and Nebius file `20-F`, not `10-K`). Amendments (`10-K/A`, `20-F/A`) are intentionally skipped in favor of the original filing.
+- A ticker missing from this file isn't necessarily "no filings" — it just means `fetch_sec_filings.py` hasn't successfully resolved a CIK or annual filing for it yet (see stderr output from that script for `No SEC CIK found for: ...` / `No annual report found in range for: ...`).
+- The modal never needs this file to show *something* — the generic "All filings ↗" EDGAR search link is built client-side straight from `c.ticker`, with no dependency on `sec_filings.json` having loaded or having an entry.
+
 ## The weekly pipeline
 
 - `scripts/update_prices.py` runs every **Friday ~21:15 UTC** (~4:15pm ET, after US close) via the GitHub Action, and can also be triggered manually from the Actions tab.
@@ -91,11 +113,19 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 - Holiday handling is **approximate** — Mon–Fri only, no actual market-holiday calendar. A manual run on a holiday requests that date but naturally falls back to the last real session anyway (`fetch_yahoo_bars` always takes the last *available* bar, not a specific date match).
 - `_meta.asOf` in the output reflects the *actual* session date the data came from, not just the requested date, so the page's "Last refreshed" line stays honest if the two ever disagree.
 
-## Adding a ticker to the weekly pull
+## The monthly SEC filings pipeline
 
-1. Add it to the `TICKERS` list in `scripts/update_prices.py` (US-listed only).
-2. In `index.html`'s `LAYERS` array, add the company with `ticker:"SYMBOL"` and `market:null` (omit/null `market` for a pullable US ticker — only set it to `"private"` or `"non-us"` for companies the pipeline can't fetch). Add the same entry to `ai-stack-bubbles.html`'s own array too (see "known limitations" — no shared source between the two files).
-3. It'll populate automatically on the next scheduled or manual run — no other code changes needed.
+- `scripts/fetch_sec_filings.py` runs on the **1st of every month at 06:00 UTC** via its own GitHub Action, and can also be triggered manually from the Actions tab. Annual reports don't need weekly checking the way prices do, hence the slower cadence.
+- **SEC EDGAR is the sole data source**, via two of its free, keyless JSON endpoints: `https://www.sec.gov/files/company_tickers.json` (bulk ticker→CIK map, fetched once per run) and `https://data.sec.gov/submissions/CIK##########.json` per company (its filing history, scanned for the most recent `10-K`/`10-K405`/`20-F`/`40-F`). Both require a descriptive `User-Agent` header — see `SEC_HEADERS` in the script — SEC will reject requests without one.
+- **Ticker list is imported, not duplicated.** `fetch_sec_filings.py` does `from update_prices import TICKERS` rather than keeping its own copy — these are two Python files in the same repo (not the two independent HTML rosters), so sharing the list here carries no real drift risk and one edit to `update_prices.py`'s `TICKERS` covers both pipelines.
+- **Amendments are skipped on purpose.** If a company's most recent annual-report-type filing is a `10-K/A`, the script keeps looking for the original `10-K` instead — always link to the primary filing, not a correction, so this doesn't have to reason about what the amendment changed.
+- A ticker can end up missing from `sec_filings.json` for two different reasons, both logged to stderr rather than failing the run: no CIK found in SEC's bulk ticker map (`No SEC CIK found for: ...`), or a CIK was found but no annual-report filing type showed up in its recent filing history (`No annual report found in range for: ...`, essentially never expected in practice — SEC's "recent" window covers far more than a year of filings for every company on this page).
+
+## Adding a ticker
+
+1. Add it to the `TICKERS` list in `scripts/update_prices.py` (US-listed only) — `fetch_sec_filings.py` picks it up automatically from the same list, no separate step needed there.
+2. In `index.html`'s `LAYERS` array, add the company with `ticker:"SYMBOL"` and `market:null` (omit/null `market` for a pullable US ticker — only set it to `"private"` or `"non-us"` for companies neither pipeline can fetch). Add the same entry to `ai-stack-bubbles.html`'s own array too (see "known limitations" — no shared source between the two files).
+3. It'll populate automatically on the next scheduled or manual run of each workflow — no other code changes needed.
 
 ## Known limitations / things not to "fix" without thinking first
 
@@ -105,4 +135,6 @@ If you add a new company to the page, decide which bucket it's in and mark it ac
 - **Manual, human-verified seed data.** The current values in `prices.json` were originally researched and entered by hand before the automated pipeline existed. Once the Action has run at least once successfully, treat the file as machine-owned — don't hand-edit it and expect it to survive the next run.
 - **Currency:** everything is USD except Neo Performance Materials (NEO), which is CAD and TSX-listed — it's in the permanent-no-data bucket precisely because of this, not a bug.
 - **Yahoo's chart endpoint is unofficial/undocumented, and it's now the only data source.** It's been reliable in practice but can change shape or start blocking without notice. There is currently no fallback (Alpaca was removed as unused — see git log / README "Notes on this cut"). If Yahoo ever breaks outright, `missing` tickers just get logged and left out of `prices.json` for that run rather than failing the whole pipeline — check `docs/data-flow.md` before deciding whether a fallback is worth re-adding.
+- **SEC EDGAR's bulk JSON endpoints are undocumented in the same sense Yahoo's chart endpoint is** — free and keyless, but not a formally versioned public API. `data.sec.gov`'s `submissions` response can be large for companies with a long filing history; the script only reads the inline `filings.recent` window (up to ~1000 most-recent filings), not the older paginated `filings.files` history — fine for finding the *latest* annual report, not a tool for a full filing archive.
+- **`sec_filings.json` becomes machine-owned once its Action has run successfully at least once**, same as `prices.json` — don't hand-edit it afterward and expect it to survive the next run. Unlike `prices.json`, this file started as an empty seed (no hand-verified data) since the modal has a working fallback (the generic EDGAR link) with no data file at all.
 - **This is a reference/illustrative tool, not investment advice.** Keep that framing in any copy changes — it's stated explicitly in the page footer and should stay there.

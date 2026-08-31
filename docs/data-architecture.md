@@ -2,7 +2,7 @@
 
 ## Overview
 
-The site is two static HTML pages sharing one JSON data file. There is no backend and no database — `prices.json` *is* the database, checked into git and rewritten in place by a scheduled job.
+The site is two static HTML pages sharing two JSON data files. There is no backend and no database — `prices.json` and `sec_filings.json` *are* the database, both checked into git and rewritten in place by their own scheduled job.
 
 ```
 ┌───────────────────────────┐        ┌──────────────────────┐
@@ -12,23 +12,29 @@ The site is two static HTML pages sharing one JSON data file. There is no backen
 │  - embedded bubble map     │                    │ overwrites
 │  (fetches at load,         │        ┌──────────┴────────────┐
 │   renders on click)        │        │ scripts/update_prices.py│
-└───────────────────────────┘        │ (Yahoo Finance only)     │
-┌─────────────────────┐              └──────────────────────┘
-│ ai-stack-bubbles.html│
-│ standalone full-screen│
-│ bubble map, own copy  │
-│ of the roster — no    │
-│ price fetch            │
+│                            │──────▶│ (Yahoo Finance only)     │
+│                            │  GET  └──────────────────────┘
+│                            │
+│                            │        ┌──────────────────────┐
+│                            │──────▶│   sec_filings.json      │
+│                            │  GET  │  (static JSON, in repo)│
+└───────────────────────────┘       └───────────▲────────────┘
+┌─────────────────────┐                          │ overwrites
+│ ai-stack-bubbles.html│              ┌──────────┴──────────────┐
+│ standalone full-screen│              │ scripts/fetch_sec_filings│
+│ bubble map, own copy  │              │ .py (SEC EDGAR only)     │
+│ of the roster — no    │              └─────────────────────────┘
+│ price/SEC fetch        │
 └─────────────────────┘
 ```
 
-`ai-stack-bubbles.html` intentionally does **not** read `prices.json`. If price data is wanted there later, mirror the `fetch('./prices.json')` block from `index.html`'s `<script>` tag.
+`ai-stack-bubbles.html` intentionally does **not** read `prices.json` or `sec_filings.json`. If either is wanted there later, mirror the corresponding `fetch(...)` block from `index.html`'s `<script>` tag.
 
 ## UI: one data-driven page, click a company for detail
 
-`index.html` renders from a single in-page `const LAYERS = [...]` array (each company: `name`/`ticker`/`role`/`market`) — both the layer list (`.card` elements) and the embedded bubble/constellation section read from it, so they can't drift from each other within this file. Cards show only the company name, role, and ticker symbol — no inline price or % badges. Clicking (or Enter/Space on a focused card, or clicking an expanded company bubble) opens a modal combining two things: the company's position in the stack (layer, upstream/downstream, public/private) and, for public US tickers, its price detail — current price, a 60-session sparkline, 52-week high/low with % from current, YTD %, last-20-days %, and a range slider positioning the price between the 52-week low and high. No network call happens at click time — everything needed is already in `prices.json`, fetched once on page load, which keeps the page fully static and avoids exposing any API credentials or hitting CORS issues client-side.
+`index.html` renders from a single in-page `const LAYERS = [...]` array (each company: `name`/`ticker`/`role`/`market`) — both the layer list (`.card` elements) and the embedded bubble/constellation section read from it, so they can't drift from each other within this file. Cards show only the company name, role, and ticker symbol — no inline price or % badges. Clicking (or Enter/Space on a focused card, or clicking an expanded company bubble) opens a modal combining three things: the company's position in the stack (layer, upstream/downstream, public/private); for public US tickers, its price detail — current price, a 60-session sparkline, 52-week high/low with % from current, YTD %, last-20-days %, and a range slider positioning the price between the 52-week low and high; and, also for public US tickers, its SEC filing info — a generic "All filings ↗" link to that ticker's EDGAR filings list (needs no fetched data, built straight from the ticker symbol) plus, once available, a "Latest 10-K/20-F/40-F — filed *date*" line linking directly to that filing. No network call happens at click time — everything needed is already in `prices.json` and `sec_filings.json`, both fetched once on page load, which keeps the page fully static and avoids exposing any API credentials or hitting CORS issues client-side.
 
-For a company with `market:"private"` or `market:"non-us"`, or a US ticker with no entry yet in `prices.json`, the modal shows an explanatory empty state instead of price stats (the position section still renders normally).
+For a company with `market:"private"` or `market:"non-us"`, or a US ticker with no entry yet in `prices.json`, the modal shows an explanatory empty state instead of price stats (the position section still renders normally). The SEC section follows the same `market` eligibility as price data — hidden entirely for `"private"`/`"non-us"` companies — but degrades more gracefully than the price section: the "All filings" link always shows for an eligible ticker, and only the "Latest filing" line falls back to a "pending" message when `sec_filings.json` doesn't have an entry yet.
 
 ## `prices.json` schema
 
@@ -58,6 +64,32 @@ Rules:
 - `ytdStart` is the close on the year's first trading day, used for the YTD% calculation.
 - `_meta.asOf` reflects the *actual* session date the data came from, which may occasionally differ from the requested date — this keeps the page's "Last refreshed" line honest.
 - A ticker with no entry in this file falls back to its default empty-state rendering in the modal. The JS never blanks out or guesses a value.
+
+## `sec_filings.json` schema
+
+```json
+{
+  "_meta": {
+    "asOf": "2026-09-01",
+    "source": "SEC EDGAR — data.sec.gov submissions API",
+    "note": "..."
+  },
+  "TICKER": {
+    "cik": "0000320193",
+    "companyName": "Apple Inc.",
+    "formType": "10-K",
+    "filingDate": "2025-10-31",
+    "filingUrl": "https://www.sec.gov/Archives/edgar/data/320193/000032019325000079/0000320193-25-000079-index.htm"
+  }
+}
+```
+
+Rules:
+
+- Same eligibility as `prices.json` — only tickers with `market:null` are looked up; `market:"private"`/`"non-us"` companies are skipped entirely (no SEC filings to find).
+- `formType` reflects whichever annual-report type that specific filer uses — `10-K`/`10-K405` for domestic filers, `20-F`/`40-F` for foreign private issuers (e.g. TSMC, ASML, Arm, SAP, Nebius). The modal doesn't hardcode "10-K" as a label — it always renders whatever `formType` says.
+- `filingUrl` points at the filing's EDGAR index page (lists the primary document plus exhibits), not a raw document URL.
+- A ticker with no entry here does **not** fall back to an empty state the way `prices.json` does — the modal's generic "All filings ↗" link still shows (it needs no data from this file), only the "Latest filing" line shows "pending" instead.
 
 ## Company/ticker classification
 
@@ -95,4 +127,6 @@ Both HTML pages share the same layer structure, ordered upstream → downstream,
 - **Currency:** everything is USD except Neo Performance Materials (NEO, CAD/TSX) — which is in the permanent-no-data bucket specifically because it's foreign-listed, not because of the currency itself.
 - **Holiday handling is approximate** (Mon–Fri only, no real market-holiday calendar) — see [data-flow.md](./data-flow.md) for how the script compensates.
 - **Yahoo's chart endpoint is unofficial/undocumented, and it's the only data source (no fallback).** It's free and reliable in practice, but can change shape or start blocking without notice — see [data-flow.md](./data-flow.md) for what happens to affected tickers if it does.
+- **SEC filing info refreshes monthly, not weekly** — a deliberate cadence choice (annual reports don't change often), not an oversight.
+- **`sec_filings.json` started as an empty seed file**, unlike `prices.json`'s hand-verified seed — the modal has a working fallback (the generic EDGAR link, built from the ticker alone) even with zero rows in this file, so there was no need to hand-populate it before the pipeline's first run.
 - This is a reference/illustrative tool, not investment advice — keep that framing in any copy changes; it's stated in the page footer.

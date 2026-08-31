@@ -1,0 +1,35 @@
+name: Update SEC filing info (monthly)
+
+on:
+  schedule:
+    # 06:00 UTC on the 1st of every month. Annual reports don't need
+    # weekly refreshing the way prices do — monthly comfortably catches
+    # any new 10-K/20-F/40-F soon after it's filed.
+    - cron: '0 6 1 * *'
+  # Manual runs (Actions tab -> Run workflow) are always safe.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  update-sec-filings:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Fetch filing info from SEC EDGAR
+        run: python scripts/fetch_sec_filings.py
+
+      - name: Commit updated sec_filings.json
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: 'Monthly SEC filing info update'
+          file_pattern: sec_filings.json

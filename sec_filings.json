@@ -1,0 +1,7 @@
+{
+  "_meta": {
+    "asOf": null,
+    "source": "SEC EDGAR — data.sec.gov submissions API",
+    "note": "Seed file — empty until scripts/fetch_sec_filings.py runs successfully via the 'Update SEC filing info' GitHub Action (monthly, or Actions tab -> Run workflow). Once populated, each ticker gets {cik, companyName, formType, filingDate, filingUrl} for its most recent 10-K/20-F/40-F. Until then, the modal shows a generic EDGAR filings link for every public US ticker and skips the 'latest filing' line."
+  }
+}

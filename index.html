@@ -558,6 +558,13 @@
   .m-range-track{position:relative;height:4px;border-radius:2px;background:linear-gradient(90deg,var(--down),var(--line-strong) 50%,var(--up));}
   .m-range-dot{position:absolute;top:50%;left:0;width:12px;height:12px;border-radius:50%;background:var(--bone);border:2px solid var(--panel-2);transform:translate(-50%,-50%);}
   .m-empty{margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);color:var(--muted);font-size:12.5px;line-height:1.6;}
+  .m-sec{margin-top:20px;padding-top:18px;border-top:1px dashed var(--line);display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+  .m-sec-text{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.02em;}
+  .m-sec-text.pending{font-style:italic;}
+  .m-sec-text a{color:var(--bone-dim);text-decoration:none;}
+  .m-sec-text a:hover{color:var(--mc,var(--brass));text-decoration:underline;}
+  .m-sec-link{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;color:var(--mc,var(--brass));text-decoration:none;white-space:nowrap;flex-shrink:0;}
+  .m-sec-link:hover{text-decoration:underline;}
 
   /* ───────── Footer ───────── */
   footer{
@@ -801,6 +808,10 @@
     </div>
   </div>
   <div class="m-empty" id="mEmpty" hidden></div>
+  <div class="m-sec" id="mSecBody" hidden>
+    <span class="m-sec-text" id="mSecLatest"></span>
+    <a class="m-sec-link" id="mSecAllLink" href="#" target="_blank" rel="noopener">All filings ↗</a>
+  </div>
 </div>
 
 <script>
@@ -1047,6 +1058,7 @@ $("#layerPills").addEventListener("click", e => {
 const modal = $("#modal"), scrim = $("#scrim");
 let lastFocus = null;
 let PRICES_DATA = null;
+let SEC_DATA = null;
 
 const fmtPct = v => (v == null ? null : (v >= 0 ? "+" : "") + v.toFixed(1) + "%");
 const pctCls = v => (v == null ? "" : v >= 0 ? "up" : "down");
@@ -1129,6 +1141,25 @@ function openModal(c, layer){
       $("#mRangeDot").style.left = pos + "%";
     } else {
       rangeWrap.hidden = true;
+    }
+  }
+
+  const secBody = $("#mSecBody"), secLatest = $("#mSecLatest"), secLink = $("#mSecAllLink");
+  if(c.market){
+    secBody.hidden = true;
+  } else {
+    secBody.hidden = false;
+    secLink.href = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&ticker=${encodeURIComponent(c.ticker)}&type=&dateb=&owner=include&count=40`;
+    const sec = SEC_DATA ? SEC_DATA[c.ticker] : null;
+    if(sec && sec.filingDate){
+      const label = `Latest ${esc(sec.formType || "annual report")} — filed ${esc(sec.filingDate)}`;
+      secLatest.innerHTML = sec.filingUrl
+        ? `<a href="${sec.filingUrl}" target="_blank" rel="noopener">${label} ↗</a>`
+        : label;
+      secLatest.classList.remove("pending");
+    } else {
+      secLatest.textContent = "Filing lookup pending next update";
+      secLatest.classList.add("pending");
     }
   }
 
@@ -1451,6 +1482,12 @@ fetch("./prices.json", {cache:"no-store"})
     }
   })
   .catch(() => { /* prices.json missing or unreachable — modal shows "no data" per ticker */ });
+
+/* ═════════ SEC filings ═════════ */
+fetch("./sec_filings.json", {cache:"no-store"})
+  .then(r => r.ok ? r.json() : null)
+  .then(data => { if(data) SEC_DATA = data; })
+  .catch(() => { /* sec_filings.json missing or unreachable — modal shows "pending" per ticker */ });
 </script>
 </body>
 </html>
